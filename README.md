@@ -51,7 +51,7 @@ ai_chatbot_django/
 ### Step 1: Clone the Repository
 
 ```bash
-git clone
+git clone https://github.com/kg12581/ai_chatbot_django.git
 cd ai_chatbot_django
 ```
 
