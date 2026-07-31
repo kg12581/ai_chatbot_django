@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -236,8 +236,7 @@
         <div class="message bot">
           <div class="message-avatar">AI</div>
           <div class="message-content">
-            Hello! I'm your AI assistant. I can help you with information,
-            answer questions, and more. What would you like to know?
+            你好！我是你的AI助手。我可以帮你查找信息、回答问题等等。请问你想了解什么？
           </div>
         </div>
       </div>
@@ -248,11 +247,11 @@
             type="text"
             class="chat-input"
             id="messageInput"
-            placeholder="Type your message here..."
+            placeholder="在这里输入你的消息..."
             autocomplete="off"
           />
           <button type="submit" class="send-button" id="sendButton">
-            Send
+            发送
           </button>
         </form>
       </div>
@@ -348,13 +347,13 @@
                 this.addToolMessage(lastMsg.content);
               }
             } else {
-              this.addMessage("Sorry, I did not get a response.", "bot");
+              this.addMessage("抱歉，未收到回复。", "bot");
             }
           } catch (error) {
             console.error("Error:", error);
             this.removeLoading();
             this.addMessage(
-              "Sorry, I encountered an error. Please try again.",
+              "抱歉，发生了错误，请重试。",
               "bot"
             );
           }
@@ -390,7 +389,7 @@
           const messageContent = document.createElement("div");
           messageContent.className = "message-content tool-message";
           messageContent.innerHTML = marked.parse(
-            "Tool used: " +
+            "使用工具: " +
               content.substring(0, 100) +
               (content.length > 100 ? "..." : "")
           );
@@ -414,7 +413,7 @@
           const loadingContent = document.createElement("div");
           loadingContent.className = "message-content loading";
           loadingContent.innerHTML = `
-                    Thinking
+                    思考中
                     <div class="loading-dots">
                         <span></span>
                         <span></span>

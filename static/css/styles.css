@@ -1,0 +1,134 @@
+/* Nocturne AI — 自定义样式补充 */
+
+/* 滚动条美化 */
+.chat-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(94, 234, 212, 0.15) transparent;
+}
+.chat-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.chat-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.chat-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(94, 234, 212, 0.15);
+    border-radius: 3px;
+}
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(94, 234, 212, 0.3);
+}
+
+/* 全局滚动条 */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #0a0b14;
+}
+::-webkit-scrollbar-thumb {
+    background-color: #272838;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background-color: #3a3b4d;
+}
+
+/* 消息渲染样式 */
+.message-content {
+    line-height: 1.7;
+}
+.message-content p {
+    margin-bottom: 0.75rem;
+}
+.message-content p:last-child {
+    margin-bottom: 0;
+}
+.message-content code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.875em;
+    padding: 0.15em 0.4em;
+    background: rgba(94, 234, 212, 0.1);
+    border: 1px solid rgba(94, 234, 212, 0.2);
+    border-radius: 4px;
+    color: #5eead4;
+}
+.message-content pre {
+    margin: 0.75rem 0;
+    padding: 1rem;
+    background: #0a0b14;
+    border: 1px solid #272838;
+    border-radius: 0.75rem;
+    overflow-x: auto;
+}
+.message-content pre code {
+    padding: 0;
+    background: none;
+    border: none;
+    color: #e4e4e7;
+    font-size: 0.85rem;
+    line-height: 1.6;
+}
+.message-content ul,
+.message-content ol {
+    margin: 0.5rem 0 0.75rem 1.5rem;
+}
+.message-content li {
+    margin-bottom: 0.25rem;
+}
+.message-content strong {
+    color: #fbbf24;
+    font-weight: 600;
+}
+
+/* 打字光标 */
+.typing-cursor {
+    display: inline-block;
+    width: 8px;
+    height: 1.1em;
+    background: #5eead4;
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+    box-shadow: 0 0 8px rgba(94, 234, 212, 0.6);
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* 思考指示器 */
+.thinking-dots {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+}
+.thinking-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #5eead4;
+    animation: thinkingBounce 1.4s ease-in-out infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes thinkingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* 建议卡片悬停效果 */
+.suggestion-card {
+    cursor: pointer;
+}
+
+/* 侧边栏折叠状态 */
+.sidebar-collapsed {
+    width: 0 !important;
+    border-right: none !important;
+    overflow: hidden;
+}

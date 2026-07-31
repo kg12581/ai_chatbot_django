@@ -1,0 +1,154 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Nocturne AI — 暗夜智能对话{% endblock %}</title>
+    <meta name="description" content="基于 Django 4.2 构建的 AI 对话平台，优雅暗色界面与流畅智能对话体验">
+
+    <!-- 字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        nocturne: {
+                            bg: '#0a0b14',
+                            surface: '#13141f',
+                            elevated: '#1a1b28',
+                            border: '#272838',
+                            mint: '#5eead4',
+                            'mint-dim': '#2dd4bf',
+                            amber: '#fbbf24',
+                            'text-primary': '#e4e4e7',
+                            'text-muted': '#71717a',
+                            'text-dim': '#52525b',
+                        }
+                    },
+                    fontFamily: {
+                        display: ['Fraunces', 'serif'],
+                        sans: ['Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    animation: {
+                        'fade-up': 'fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+                        'fade-in': 'fadeIn 0.6s ease forwards',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'shimmer': 'shimmer 2.5s linear infinite',
+                        'blink': 'blink 1s step-end infinite',
+                        'slide-in': 'slideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards',
+                    },
+                    keyframes: {
+                        fadeUp: {
+                            '0%': { opacity: '0', transform: 'translateY(24px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        },
+                        shimmer: {
+                            '0%': { backgroundPosition: '-200% 0' },
+                            '100%': { backgroundPosition: '200% 0' },
+                        },
+                        blink: {
+                            '0%, 50%': { opacity: '1' },
+                            '51%, 100%': { opacity: '0' },
+                        },
+                        slideIn: {
+                            '0%': { opacity: '0', transform: 'translateY(12px) scale(0.98)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide 图标 -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="font-sans bg-nocturne-bg text-nocturne-text-primary antialiased min-h-screen selection:bg-nocturne-mint/20 selection:text-nocturne-mint">
+
+    <!-- 全局背景纹理 -->
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(94,234,212,0.06),transparent_40%),radial-gradient(circle_at_80%_80%,rgba(251,191,36,0.04),transparent_40%)]"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(39,40,56,0.4)_1px,transparent_1px),linear-gradient(90deg,rgba(39,40,56,0.4)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]"></div>
+    </div>
+
+    <!-- 导航栏 -->
+    <nav class="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-nocturne-bg/70 border-b border-nocturne-border/50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="{% url 'home' %}" class="flex items-center gap-3 group">
+                <div class="relative w-9 h-9 flex items-center justify-center">
+                    <div class="absolute inset-0 rounded-xl bg-gradient-to-br from-nocturne-mint/30 to-nocturne-amber/20 blur-md group-hover:blur-lg transition-all"></div>
+                    <div class="relative w-9 h-9 rounded-xl border border-nocturne-mint/40 bg-nocturne-surface flex items-center justify-center">
+                        <div class="w-3 h-3 rounded-full bg-nocturne-mint shadow-[0_0_12px_rgba(94,234,212,0.8)] animate-pulse-slow"></div>
+                    </div>
+                </div>
+                <span class="font-display text-xl font-semibold tracking-tight">Nocturne<span class="text-nocturne-mint">.</span>AI</span>
+            </a>
+
+            <div class="flex items-center gap-2">
+                <a href="{% url 'history' %}" class="px-4 py-2 text-sm text-nocturne-text-muted hover:text-nocturne-text-primary transition-colors rounded-lg hover:bg-nocturne-surface/60">
+                    历史记录
+                </a>
+                <a href="{% url 'chat_new' %}" class="group relative px-5 py-2 text-sm font-medium text-nocturne-bg bg-nocturne-mint rounded-full overflow-hidden transition-transform hover:scale-105">
+                    <span class="relative z-10 flex items-center gap-2">
+                        开始对话
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-nocturne-mint to-nocturne-amber opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区 -->
+    <main class="pt-16">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="border-t border-nocturne-border/50 mt-20">
+        <div class="max-w-7xl mx-auto px-6 py-10 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-2 h-2 rounded-full bg-nocturne-mint shadow-[0_0_8px_rgba(94,234,212,0.6)]"></div>
+                <span class="text-sm text-nocturne-text-muted">Nocturne AI · 基于 Django 4.2 构建</span>
+            </div>
+            <div class="flex items-center gap-6 text-sm text-nocturne-text-dim">
+                <span class="font-mono">v1.0.0</span>
+                <span>·</span>
+                <span>模拟模式运行中</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 初始化图标 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

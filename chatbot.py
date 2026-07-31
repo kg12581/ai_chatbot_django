@@ -1,22 +1,23 @@
+import os
 from typing import Annotated
 from langchain_core.messages import SystemMessage
 from typing_extensions import TypedDict
 
-from langchain.chat_models import init_chat_model
-# from langchain_tavily import TavilySearch
+from langchain_openai import ChatOpenAI
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from langchain_chroma import Chroma
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.tools import tool
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
+# 使用 HuggingFace 本地 Embedding（无需 API Key，首次运行会自动下载模型）
+embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
 
 vector_store = Chroma(
     collection_name="rag_collection",
@@ -56,18 +57,23 @@ graph_builder = StateGraph(State)
 # tool = TavilySearch(max_results=2)
 # tools = [tool]
 tools = [retrieve_relevant_documents]
-llm_with_fallbacks = init_chat_model("google_genai:gemini-2.0-flash").with_fallbacks(
-    [init_chat_model("groq:llama-3.3-70b-versatile")]
+# 使用 DeepSeek API（OpenAI 兼容接口）
+llm = ChatOpenAI(
+    model="deepseek-chat",
+    api_key=os.environ["DEEPSEEK_API_KEY"],
+    base_url="https://api.deepseek.com",
+    temperature=0.7,
 )
-llm_with_tools = llm_with_fallbacks.bind_tools(tools)
+llm_with_tools = llm.bind_tools(tools)
 
 
 def chatbot(state: State):
     SYSTEM_PROMPT = (
-        "Use only the following pieces of context to answer the question at the end.\n"
-        "If you don't know the answer, just say that you don't know, don’t try to make up an answer.\n"
-        "Always use the tool to retrieve relevant content before answering"
-        "Keep the answer as concise as possible."
+        "你是一个智能AI助手，请默认使用中文回答用户的问题。\n"
+        "只根据以下检索到的上下文内容来回答问题。\n"
+        "如果不知道答案，就直接说不知道，不要编造答案。\n"
+        "回答前请始终使用工具检索相关内容。\n"
+        "回答尽量简洁明了。"
     )
 
     system_message = SystemMessage(content=SYSTEM_PROMPT)
