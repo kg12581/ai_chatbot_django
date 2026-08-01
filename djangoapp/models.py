@@ -1,8 +1,17 @@
+from django.conf import settings
 from django.db import models
 
 
 class Conversation(models.Model):
     title = models.CharField(max_length=200, default="新对话")
+    # 所属用户：null=True 用于兼容历史数据（迁移时归属到 admin）
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="conversations",
+        null=True,
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

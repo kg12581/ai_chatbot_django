@@ -5,10 +5,10 @@ from .models import Conversation, Message
 
 @admin.register(Conversation)
 class ConversationAdmin(admin.ModelAdmin):
-    list_display = ("id", "title", "message_count", "created_at", "updated_at")
+    list_display = ("id", "title", "user", "message_count", "created_at", "updated_at")
     list_display_links = ("id", "title")
-    search_fields = ("title",)
-    list_filter = ("created_at",)
+    search_fields = ("title", "user__username")
+    list_filter = ("user", "created_at")
     date_hierarchy = "created_at"
     ordering = ("-updated_at",)
 

@@ -11,13 +11,26 @@ from .models import Conversation, Message
 
 logger = logging.getLogger(__name__)
 
+
+def _visible_conversations(user):
+    """返回该用户可见的会话 QuerySet。
+
+    规则：
+      - 超级用户（admin）可以查看所有会话
+      - 普通用户只能查看自己的会话
+    """
+    if user.is_superuser:
+        return Conversation.objects.all()
+    return Conversation.objects.filter(user=user)
+
+
 # ==================== 页面视图 ====================
 
 
 @login_required
 def home(request):
     """首页"""
-    conversation_count = Conversation.objects.count()
+    conversation_count = _visible_conversations(request.user).count()
     return render(request, "home.html", {
         "conversation_count": conversation_count,
     })
@@ -26,15 +39,20 @@ def home(request):
 @login_required
 def chat_new(request):
     """新建对话 - 重定向到新会话"""
-    conv = Conversation.objects.create(title="新对话")
+    conv = Conversation.objects.create(title="新对话", user=request.user)
     return redirect("chat_detail", conv_id=conv.id)
 
 
 @login_required
 def chat_detail(request, conv_id):
     """对话详情页"""
-    conversation = get_object_or_404(Conversation, id=conv_id)
-    conversations = Conversation.objects.all()[:20]
+    # 普通用户访问他人会话会 404；admin 可访问任意会话
+    conversation = get_object_or_404(
+        Conversation.objects.filter(user=request.user) if not request.user.is_superuser
+        else Conversation.objects.all(),
+        id=conv_id,
+    )
+    conversations = _visible_conversations(request.user)[:20]
     messages = list(conversation.messages.values("role", "content"))
     messages_json = json.dumps(messages, ensure_ascii=False)
 
@@ -50,10 +68,11 @@ def chat_detail(request, conv_id):
 def history(request):
     """历史记录页"""
     query = request.GET.get("q", "").strip()
+    qs = _visible_conversations(request.user)
     if query:
-        conversations = Conversation.objects.filter(title__icontains=query)
+        conversations = qs.filter(title__icontains=query)
     else:
-        conversations = Conversation.objects.all()
+        conversations = qs
     return render(request, "history.html", {
         "conversations": conversations,
         "query": query,
@@ -63,6 +82,7 @@ def history(request):
 # ==================== API 视图 ====================
 
 
+@login_required
 @csrf_exempt
 @require_http_methods(["POST"])
 def chat_stream(request):
@@ -75,11 +95,14 @@ def chat_stream(request):
         if not user_message:
             return JsonResponse({"error": "消息不能为空"}, status=400)
 
-        # 获取或创建会话
+        # 获取或创建会话（按用户隔离，admin 也只能在自己的会话中聊天）
         if conversation_id:
-            conversation = get_object_or_404(Conversation, id=conversation_id)
+            conversation = get_object_or_404(
+                Conversation.objects.filter(user=request.user),
+                id=conversation_id,
+            )
         else:
-            conversation = Conversation.objects.create(title="新对话")
+            conversation = Conversation.objects.create(title="新对话", user=request.user)
 
         # 保存用户消息
         Message.objects.create(
@@ -157,11 +180,16 @@ def _call_deepseek(history_messages):
             yield chunk.content
 
 
+@login_required
 @csrf_exempt
 @require_http_methods(["DELETE"])
 def conversation_detail(request, conv_id):
-    """删除会话"""
-    conversation = get_object_or_404(Conversation, id=conv_id)
+    """删除会话（普通用户只能删除自己的会话）"""
+    conversation = get_object_or_404(
+        Conversation.objects.filter(user=request.user) if not request.user.is_superuser
+        else Conversation.objects.all(),
+        id=conv_id,
+    )
     conversation.delete()
     return JsonResponse({"ok": True})
 
