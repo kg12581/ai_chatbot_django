@@ -117,7 +117,7 @@ TIME_ZONE = "Asia/Shanghai"
 
 USE_I18N = True
 
-USE_TZ = True
+USE_TZ = False
 
 
 # Static files (CSS, JavaScript, Images)
@@ -131,3 +131,25 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# ==================== 认证与登录 ====================
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "login"
+
+
+# ==================== 邮件配置 ====================
+# 开发环境：邮件输出到控制台（无需 SMTP 服务器，便于调试）
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = "no-reply@nocturne.ai"
+
+# 生产环境请改用 SMTP（例如 QQ 邮箱）：
+# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+# EMAIL_HOST = "smtp.qq.com"
+# EMAIL_PORT = 465
+# EMAIL_USE_SSL = True
+# EMAIL_HOST_USER = "your_email@qq.com"
+# EMAIL_HOST_PASSWORD = "your_auth_code"
+# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

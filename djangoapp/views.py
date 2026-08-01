@@ -5,6 +5,7 @@ from django.http import JsonResponse, StreamingHttpResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
 
 from .models import Conversation, Message
 
@@ -13,6 +14,7 @@ logger = logging.getLogger(__name__)
 # ==================== 页面视图 ====================
 
 
+@login_required
 def home(request):
     """首页"""
     conversation_count = Conversation.objects.count()
@@ -21,12 +23,14 @@ def home(request):
     })
 
 
+@login_required
 def chat_new(request):
     """新建对话 - 重定向到新会话"""
     conv = Conversation.objects.create(title="新对话")
     return redirect("chat_detail", conv_id=conv.id)
 
 
+@login_required
 def chat_detail(request, conv_id):
     """对话详情页"""
     conversation = get_object_or_404(Conversation, id=conv_id)
@@ -42,6 +46,7 @@ def chat_detail(request, conv_id):
     })
 
 
+@login_required
 def history(request):
     """历史记录页"""
     query = request.GET.get("q", "").strip()

@@ -6,10 +6,10 @@
 """
 
 import logging
-from datetime import datetime, timezone
 from typing import List, Dict
 
 import requests
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +134,8 @@ def save_to_db(items: List[Dict]) -> int:
         return 0
 
     # 使用当前时间作为批次标识，同批次数据可整体替换
-    batch_time = datetime.now(timezone.utc)
+    # USE_TZ=False 时 timezone.now() 返回本地 naive datetime，Django 直接存储
+    batch_time = timezone.now()
 
     # 批量创建
     objects = [
@@ -164,6 +165,7 @@ def fetch_and_save() -> dict:
     count = save_to_db(items)
     return {
         "total": count,
-        "batch_time": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        # 返回给前端时转换为本地时区（Asia/Shanghai）
+        "batch_time": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
         "items": items,
     }

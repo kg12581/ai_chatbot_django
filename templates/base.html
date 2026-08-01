@@ -121,6 +121,24 @@
                     </span>
                     <div class="absolute inset-0 bg-gradient-to-r from-nocturne-mint to-nocturne-amber opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </a>
+                {% if user.is_authenticated %}
+                    {% if user.is_staff %}
+                    <a href="{% url 'admin:index' %}" target="_blank" class="px-4 py-2 text-sm text-nocturne-text-muted hover:text-nocturne-mint transition-colors rounded-lg hover:bg-nocturne-surface/60">
+                        后台
+                    </a>
+                    {% endif %}
+                    <span class="px-3 py-2 text-sm text-nocturne-text-muted flex items-center gap-2">
+                        <i data-lucide="user" class="w-4 h-4"></i>
+                        {{ user.username }}
+                    </span>
+                    <a href="{% url 'logout' %}" class="px-4 py-2 text-sm text-nocturne-text-muted hover:text-red-400 transition-colors rounded-lg hover:bg-nocturne-surface/60">
+                        登出
+                    </a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="px-4 py-2 text-sm text-nocturne-mint hover:text-nocturne-text-primary transition-colors rounded-lg hover:bg-nocturne-surface/60">
+                        登录
+                    </a>
+                {% endif %}
             </div>
         </div>
     </nav>

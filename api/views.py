@@ -2,11 +2,12 @@
 
 import json
 import logging
-from datetime import datetime, timezone
 
 from django.shortcuts import render
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 
 from api.models import DouyinHotSearch, SchedulerConfig
 from api.crawler import fetch_and_save
@@ -36,7 +37,7 @@ def _scheduled_crawl():
         result = fetch_and_save()
         config = SchedulerConfig.objects.filter(task_id=DOUYIN_TASK_ID).first()
         if config:
-            config.last_run_at = datetime.now(timezone.utc)
+            config.last_run_at = timezone.now()
             config.last_run_result = f"成功: {result['total']} 条"
             config.run_count += 1
             config.save(update_fields=["last_run_at", "last_run_result", "run_count"])
@@ -44,13 +45,14 @@ def _scheduled_crawl():
     except Exception as e:
         config = SchedulerConfig.objects.filter(task_id=DOUYIN_TASK_ID).first()
         if config:
-            config.last_run_at = datetime.now(timezone.utc)
+            config.last_run_at = timezone.now()
             config.last_run_result = f"失败: {str(e)[:200]}"
             config.run_count += 1
             config.save(update_fields=["last_run_at", "last_run_result", "run_count"])
         logger.error(f"定时爬取失败: {e}")
 
 
+@login_required
 def douyin_hot(request):
     """抖音热搜榜页面"""
     # 获取最新一批数据
@@ -86,6 +88,7 @@ def douyin_hot(request):
     context = {
         "items": item_list,
         "batches": list(batches),
+        # 数据库存储本地时间（USE_TZ=False）
         "latest_batch": latest.crawl_batch.strftime("%Y-%m-%d %H:%M:%S") if latest else None,
         "total_count": DouyinHotSearch.objects.count(),
         "scheduler": _get_scheduler_context(),
@@ -122,6 +125,7 @@ def _get_scheduler_context():
     }
 
 
+@login_required
 @csrf_exempt
 def douyin_crawl(request):
     """触发爬取抖音热搜 API"""
@@ -139,6 +143,7 @@ def douyin_crawl(request):
 # ===== 定时调度管理 API =====
 
 
+@login_required
 @csrf_exempt
 def scheduler_status(request):
     """获取调度器状态"""
@@ -147,6 +152,7 @@ def scheduler_status(request):
     return JsonResponse({"success": False, "error": "仅支持 GET 请求"}, status=405)
 
 
+@login_required
 @csrf_exempt
 def scheduler_start(request):
     """启动定时任务"""
@@ -198,6 +204,7 @@ def scheduler_start(request):
     })
 
 
+@login_required
 @csrf_exempt
 def scheduler_stop(request):
     """停止定时任务"""
