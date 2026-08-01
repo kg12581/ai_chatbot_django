@@ -6,8 +6,11 @@
 {% block content %}
 <div class="flex h-[calc(100vh-4rem)] overflow-hidden">
 
+    <!-- 遮罩层（仅手机端） -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 md:hidden hidden"></div>
+
     <!-- 侧边栏 -->
-    <aside id="sidebar" class="w-72 flex-shrink-0 border-r border-nocturne-border bg-nocturne-bg/50 backdrop-blur-xl flex flex-col transition-all duration-300">
+    <aside id="sidebar" class="fixed md:relative inset-y-0 left-0 z-40 w-72 flex-shrink-0 border-r border-nocturne-border bg-nocturne-bg md:bg-nocturne-bg/50 backdrop-blur-xl flex flex-col transition-transform duration-300 -translate-x-full md:translate-x-0">
         <div class="p-4">
             <a href="{% url 'chat_new' %}" class="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl border border-nocturne-mint/30 bg-nocturne-mint/5 text-nocturne-mint hover:bg-nocturne-mint/10 hover:border-nocturne-mint/50 transition-all group">
                 <i data-lucide="plus" class="w-4 h-4 group-hover:rotate-90 transition-transform duration-300"></i>
@@ -48,20 +51,20 @@
     <!-- 主对话区 -->
     <div class="flex-1 flex flex-col min-w-0">
         <!-- 顶栏 -->
-        <header class="flex items-center justify-between px-6 py-3 border-b border-nocturne-border/50 bg-nocturne-bg/30 backdrop-blur-sm">
-            <div class="flex items-center gap-3">
-                <button id="toggle-sidebar" class="p-2 rounded-lg hover:bg-nocturne-surface/60 text-nocturne-text-muted">
+        <header class="flex items-center justify-between px-4 sm:px-6 py-3 border-b border-nocturne-border/50 bg-nocturne-bg/30 backdrop-blur-sm">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                <button id="toggle-sidebar" class="p-2 rounded-lg hover:bg-nocturne-surface/60 text-nocturne-text-muted flex-shrink-0">
                     <i data-lucide="panel-left" class="w-5 h-5"></i>
                 </button>
-                <h1 class="font-display text-lg font-medium" id="conversation-title">
+                <h1 class="font-display text-base sm:text-lg font-medium truncate" id="conversation-title">
                     {% if current_conversation %}{{ current_conversation.title }}{% else %}新对话{% endif %}
                 </h1>
                 {% if current_conversation %}
-                <span class="px-2 py-0.5 text-xs font-mono text-nocturne-text-dim border border-nocturne-border rounded-md">#{{ current_conversation.id }}</span>
+                <span class="hidden sm:inline px-2 py-0.5 text-xs font-mono text-nocturne-text-dim border border-nocturne-border rounded-md flex-shrink-0">#{{ current_conversation.id }}</span>
                 {% endif %}
             </div>
-            <div class="flex items-center gap-2">
-                <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-nocturne-border bg-nocturne-surface/50">
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <div class="flex items-center gap-2 px-2 sm:px-3 py-1.5 rounded-lg border border-nocturne-border bg-nocturne-surface/50">
                     <div class="w-1.5 h-1.5 rounded-full bg-nocturne-mint shadow-[0_0_6px_rgba(94,234,212,0.8)]"></div>
                     <span class="text-xs font-mono text-nocturne-text-muted">{% if request.session.ai_provider %}{{ request.session.ai_provider }}{% else %}mock{% endif %}</span>
                 </div>
@@ -70,7 +73,7 @@
 
         <!-- 消息区 -->
         <div id="messages-container" class="flex-1 overflow-y-auto chat-scrollbar">
-            <div id="messages-list" class="max-w-3xl mx-auto px-6 py-8 space-y-6">
+            <div id="messages-list" class="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
                 {% if messages %}
                     <!-- 消息由 JS 渲染 -->
                 {% else %}
@@ -84,9 +87,9 @@
                                 </div>
                             </div>
                         </div>
-                        <h2 class="font-display text-3xl font-light mb-2">开始一段<span class="italic text-nocturne-mint">对话</span></h2>
+                        <h2 class="font-display text-2xl sm:text-3xl font-light mb-2">开始一段<span class="italic text-nocturne-mint">对话</span></h2>
                         <p class="text-nocturne-text-muted text-sm max-w-md mb-8">向 Nocturne AI 提出任何问题，或试试以下话题</p>
-                        <div class="grid grid-cols-2 gap-3 max-w-lg">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg w-full">
                             <button class="suggestion-card px-4 py-3 rounded-xl border border-nocturne-border bg-nocturne-surface/40 hover:border-nocturne-mint/30 hover:bg-nocturne-surface/60 transition-all text-left group">
                                 <div class="flex items-center gap-2 mb-1">
                                     <i data-lucide="code-2" class="w-4 h-4 text-nocturne-mint"></i>
@@ -123,14 +126,14 @@
 
         <!-- 输入区 -->
         <div class="border-t border-nocturne-border/50 bg-nocturne-bg/40 backdrop-blur-sm">
-            <div class="max-w-3xl mx-auto px-6 py-4">
+            <div class="max-w-3xl mx-auto px-4 sm:px-6 py-4">
                 <form id="chat-form" class="relative">
                     <div class="relative flex items-end gap-3 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 backdrop-blur-sm focus-within:border-nocturne-mint/40 transition-colors">
                         <textarea
                             id="message-input"
                             rows="1"
                             placeholder="输入消息，Enter 发送，Shift+Enter 换行…"
-                            class="flex-1 bg-transparent px-5 py-4 text-sm text-nocturne-text-primary placeholder-nocturne-text-dim focus:outline-none resize-none max-h-40 chat-scrollbar"
+                            class="flex-1 bg-transparent px-4 sm:px-5 py-4 text-sm text-nocturne-text-primary placeholder-nocturne-text-dim focus:outline-none resize-none max-h-40 chat-scrollbar"
                             autocomplete="off"
                         ></textarea>
                         <button

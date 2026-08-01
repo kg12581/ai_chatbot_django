@@ -3,16 +3,16 @@
 {% block title %}历史记录 · Nocturne AI{% endblock %}
 
 {% block content %}
-<div class="max-w-6xl mx-auto px-6 py-12">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
     <!-- 标题区 -->
-    <div class="mb-10">
+    <div class="mb-8 sm:mb-10">
         <div class="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full border border-nocturne-border bg-nocturne-surface/50">
             <span class="text-xs font-mono text-nocturne-mint uppercase tracking-wider">History</span>
         </div>
-        <h1 class="font-display text-4xl md:text-5xl font-light tracking-tight mb-2">
+        <h1 class="font-display text-3xl sm:text-4xl md:text-5xl font-light tracking-tight mb-2">
             对话<span class="italic text-nocturne-mint">历史</span>
         </h1>
-        <p class="text-nocturne-text-muted">回溯你的每一次思考与对话</p>
+        <p class="text-nocturne-text-muted text-sm sm:text-base">回溯你的每一次思考与对话</p>
     </div>
 
     <!-- 搜索栏 -->
@@ -34,7 +34,7 @@
     <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for conv in conversations %}
         <div class="group relative rounded-2xl border border-nocturne-border bg-nocturne-surface/40 backdrop-blur-sm hover:border-nocturne-mint/30 transition-all overflow-hidden">
-            <a href="{% url 'chat_detail' conv.id %}" class="block p-6">
+            <a href="{% url 'chat_detail' conv.id %}" class="block p-5 sm:p-6">
                 <div class="flex items-start justify-between mb-4">
                     <div class="w-10 h-10 rounded-xl border border-nocturne-border bg-nocturne-elevated/60 flex items-center justify-center">
                         <i data-lucide="message-square" class="w-5 h-5 text-nocturne-mint"></i>

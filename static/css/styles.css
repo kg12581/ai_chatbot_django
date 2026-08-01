@@ -126,9 +126,37 @@
     cursor: pointer;
 }
 
-/* 侧边栏折叠状态 */
+/* 侧边栏折叠状态（桌面端） */
 .sidebar-collapsed {
     width: 0 !important;
     border-right: none !important;
     overflow: hidden;
+}
+
+/* ==================== 移动端适配 ==================== */
+
+/* 防止手机端横向溢出 */
+body {
+    overflow-x: hidden;
+}
+
+/* 手机端消息区字体和间距优化 */
+@media (max-width: 640px) {
+    .message-content {
+        font-size: 0.95rem;
+    }
+    .message-content pre {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+    }
+    .message-content pre code {
+        font-size: 0.8rem;
+    }
+}
+
+/* 手机端触摸优化：增大点击区域 */
+@media (max-width: 768px) {
+    button, a {
+        -webkit-tap-highlight-color: transparent;
+    }
 }

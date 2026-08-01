@@ -61,7 +61,24 @@
         // 侧边栏折叠
         if (toggleSidebarBtn) {
             toggleSidebarBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('sidebar-collapsed');
+                if (window.innerWidth >= 768) {
+                    // 桌面端：折叠/展开
+                    sidebar.classList.toggle('sidebar-collapsed');
+                } else {
+                    // 手机端：打开/关闭抽屉
+                    sidebar.classList.toggle('-translate-x-full');
+                    const overlay = document.getElementById('sidebar-overlay');
+                    if (overlay) overlay.classList.toggle('hidden');
+                }
+            });
+        }
+
+        // 点击遮罩层关闭侧边栏（手机端）
+        const overlay = document.getElementById('sidebar-overlay');
+        if (overlay) {
+            overlay.addEventListener('click', () => {
+                sidebar.classList.add('-translate-x-full');
+                overlay.classList.add('hidden');
             });
         }
 
