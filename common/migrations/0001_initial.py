@@ -31,7 +31,7 @@ class Migration(migrations.Migration):
                 ('role', models.CharField(choices=[('user', '用户'), ('assistant', '助手')], max_length=20)),
                 ('content', models.TextField()),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('conversation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages', to='djangoapp.conversation')),
+                ('conversation', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='messages', to='common.conversation')),
             ],
             options={
                 'ordering': ['created_at'],

@@ -8,7 +8,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 
-from djangoapp.views import (
+from common.views import (
     home,
     chat_new,
     chat_detail,

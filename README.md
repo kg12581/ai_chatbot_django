@@ -75,7 +75,7 @@ ai_chatbot_django/
 │   ├── models.py                 # 数据库模型
 │   ├── urls.py                   # API 路由
 │   └── views.py                  # 视图 + 调度管理 API
-├── djangoapp/                    # AI 对话 应用
+├── common/                      # AI 对话 应用
 │   ├── migrations/0001_initial.py  # Conversation / Message 模型
 │   ├── models.py                 # 会话、消息 ORM
 │   └── views.py                  # 聊天页面、流式 API、历史记录
