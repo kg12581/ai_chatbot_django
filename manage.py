@@ -11,9 +11,8 @@ def main():
         from django.core.management import execute_from_command_line
     except ImportError as exc:
         raise ImportError(
-            "Couldn't import Django. Are you sure it's installed and "
-            "available on your PYTHONPATH environment variable? Did you "
-            "forget to activate a virtual environment?"
+            "无法导入 Django。您确定它已安装并且已添加到 PYTHONPATH 环境变量中吗？"
+            "您是否忘记激活虚拟环境了？"
         ) from exc
     execute_from_command_line(sys.argv)
 
