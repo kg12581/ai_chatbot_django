@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Conversation, Message
+from .models import Conversation, Message, McpServer, McpTool, Skill
 
 
 @admin.register(Conversation)
@@ -30,3 +30,34 @@ class MessageAdmin(admin.ModelAdmin):
     @admin.display(description="内容预览")
     def content_preview(self, obj):
         return obj.content[:80] + ("..." if len(obj.content) > 80 else "")
+
+
+# ==================== MCP 与 Skill 管理 ====================
+
+
+@admin.register(McpServer)
+class McpServerAdmin(admin.ModelAdmin):
+    list_display = ("name", "transport", "enabled", "description", "updated_at")
+    list_display_links = ("name",)
+    list_filter = ("transport", "enabled")
+    search_fields = ("name", "description", "command", "url")
+    ordering = ("-created_at",)
+
+
+@admin.register(McpTool)
+class McpToolAdmin(admin.ModelAdmin):
+    list_display = ("name", "category", "enabled", "func_path", "updated_at")
+    list_display_links = ("name",)
+    list_filter = ("category", "enabled")
+    search_fields = ("name", "description", "func_path")
+    ordering = ("category", "name")
+
+
+@admin.register(Skill)
+class SkillAdmin(admin.ModelAdmin):
+    list_display = ("name", "icon", "color", "is_active", "created_by", "updated_at")
+    list_display_links = ("name",)
+    list_filter = ("is_active", "color", "created_by")
+    search_fields = ("name", "description", "system_prompt")
+    ordering = ("-is_active", "-created_at")
+    raw_id_fields = ("created_by",)

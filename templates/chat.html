@@ -127,13 +127,32 @@
         <!-- 输入区 -->
         <div class="border-t border-nocturne-border/50 bg-nocturne-bg/40 backdrop-blur-sm">
             <div class="max-w-3xl mx-auto px-4 sm:px-6 py-4">
+                <!-- 附件预览区 -->
+                <div id="attachments-preview" class="hidden flex-wrap gap-2 mb-2"></div>
+
                 <form id="chat-form" class="relative">
                     <div class="relative flex items-end gap-3 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 backdrop-blur-sm focus-within:border-nocturne-mint/40 transition-colors">
+                        <!-- 上传按钮 -->
+                        <button
+                            type="button"
+                            id="upload-button"
+                            title="上传文件或图片"
+                            class="flex-shrink-0 ml-2 mb-3 mt-3 w-9 h-9 flex items-center justify-center rounded-xl text-nocturne-text-muted hover:text-nocturne-mint hover:bg-nocturne-mint/10 transition-colors"
+                        >
+                            <i data-lucide="paperclip" class="w-5 h-5"></i>
+                        </button>
+                        <input
+                            type="file"
+                            id="file-input"
+                            class="hidden"
+                            multiple
+                            accept=".txt,.md,.py,.js,.ts,.jsx,.tsx,.java,.c,.cpp,.h,.hpp,.go,.rs,.rb,.php,.html,.css,.scss,.vue,.svelte,.json,.yaml,.yml,.toml,.ini,.cfg,.sh,.bash,.sql,.xml,.csv,.log,.png,.jpg,.jpeg,.gif,.webp,.bmp"
+                        >
                         <textarea
                             id="message-input"
                             rows="1"
                             placeholder="输入消息，Enter 发送，Shift+Enter 换行…"
-                            class="flex-1 bg-transparent px-4 sm:px-5 py-4 text-sm text-nocturne-text-primary placeholder-nocturne-text-dim focus:outline-none resize-none max-h-40 chat-scrollbar"
+                            class="flex-1 bg-transparent px-2 sm:px-3 py-4 text-sm text-nocturne-text-primary placeholder-nocturne-text-dim focus:outline-none resize-none max-h-40 chat-scrollbar"
                             autocomplete="off"
                         ></textarea>
                         <button
@@ -162,5 +181,5 @@
     window.__INITIAL_MESSAGES__ = {{ messages_json|safe }};
     window.__CURRENT_CONVERSATION_ID__ = {% if current_conversation %}{{ current_conversation.id }}{% else %}null{% endif %};
 </script>
-<script src="{% static 'js/chat.js' %}?v=2"></script>
+<script src="{% static 'js/chat.js' %}?v=3"></script>
 {% endblock %}

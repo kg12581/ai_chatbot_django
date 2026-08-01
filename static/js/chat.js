@@ -15,9 +15,15 @@
     const sidebar = document.getElementById('sidebar');
     const conversationTitle = document.getElementById('conversation-title');
     const emptyState = document.getElementById('empty-state');
+    const uploadButton = document.getElementById('upload-button');
+    const fileInput = document.getElementById('file-input');
+    const attachmentsPreview = document.getElementById('attachments-preview');
 
     let currentConversationId = window.__CURRENT_CONVERSATION_ID__ || null;
     let isStreaming = false;
+    // 附件队列：[{id, name, type, size, content, url, status}]
+    let attachments = [];
+    let attachmentIdSeq = 0;
 
     // ==================== 初始化 ====================
 
@@ -44,7 +50,7 @@
             autoResize(messageInput);
             const len = messageInput.value.length;
             charCount.textContent = len;
-            sendButton.disabled = len === 0 || isStreaming;
+            updateSendButton();
         });
 
         // Enter 发送，Shift+Enter 换行
@@ -57,6 +63,60 @@
 
         // 表单提交
         chatForm.addEventListener('submit', handleSubmit);
+
+        // 上传按钮：触发文件选择
+        if (uploadButton) {
+            uploadButton.addEventListener('click', () => {
+                if (isStreaming) return;
+                fileInput.click();
+            });
+        }
+
+        // 文件选择
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files || []);
+                files.forEach(handleFileUpload);
+                fileInput.value = ''; // 允许重复选择同一文件
+            });
+        }
+
+        // 拖拽上传
+        const formWrapper = chatForm.querySelector('.relative.flex');
+        if (formWrapper) {
+            ['dragover', 'dragenter'].forEach(ev => {
+                formWrapper.addEventListener(ev, (e) => {
+                    e.preventDefault();
+                    formWrapper.classList.add('border-nocturne-mint/60');
+                });
+            });
+            ['dragleave', 'drop'].forEach(ev => {
+                formWrapper.addEventListener(ev, (e) => {
+                    e.preventDefault();
+                    formWrapper.classList.remove('border-nocturne-mint/60');
+                });
+            });
+            formWrapper.addEventListener('drop', (e) => {
+                e.preventDefault();
+                if (isStreaming) return;
+                const files = Array.from(e.dataTransfer.files || []);
+                files.forEach(handleFileUpload);
+            });
+        }
+
+        // 粘贴图片
+        messageInput.addEventListener('paste', (e) => {
+            const items = e.clipboardData?.items || [];
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        e.preventDefault();
+                        handleFileUpload(file);
+                    }
+                }
+            }
+        });
 
         // 侧边栏折叠
         if (toggleSidebarBtn) {
@@ -103,20 +163,35 @@
     async function handleSubmit(e) {
         e.preventDefault();
         const text = messageInput.value.trim();
-        if (!text || isStreaming) return;
+        // 等待上传中的附件完成
+        const pendingUploads = attachments.filter(a => a.status === 'uploading');
+        if (isStreaming || pendingUploads.length > 0) return;
+        // 没有文本且没有附件，不发送
+        const readyAttachments = attachments.filter(a => a.status === 'done');
+        if (!text && readyAttachments.length === 0) return;
 
         // 隐藏空状态
         if (emptyState) emptyState.style.display = 'none';
 
-        // 渲染用户消息
-        appendMessage('user', text);
+        // 渲染用户消息（含附件预览）
+        appendMessage('user', text, false, readyAttachments);
         scrollToBottom();
 
-        // 清空输入框
+        // 收集要发送的附件（精简字段，避免传输 url 等本地信息）
+        const sendAttachments = readyAttachments.map(a => ({
+            name: a.name,
+            type: a.type,
+            size: a.size,
+            content: a.content || '',
+        }));
+
+        // 清空输入框与附件
         messageInput.value = '';
         autoResize(messageInput);
         charCount.textContent = '0';
-        sendButton.disabled = true;
+        attachments = [];
+        renderAttachmentsPreview();
+        updateSendButton();
         isStreaming = true;
 
         // 创建 AI 思考占位
@@ -125,25 +200,26 @@
         renderThinking(contentEl);
 
         try {
-            await streamChat(text, contentEl);
+            await streamChat(text, contentEl, sendAttachments);
         } catch (err) {
             contentEl.innerHTML = '<span class="text-red-400">连接失败，请重试</span>';
             console.error(err);
         } finally {
             isStreaming = false;
-            sendButton.disabled = messageInput.value.length === 0;
+            updateSendButton();
         }
     }
 
     // ==================== SSE 流式接收 ====================
 
-    async function streamChat(message, contentEl) {
+    async function streamChat(message, contentEl, sendAttachments) {
         const response = await fetch('/chat/api/chat/stream/', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 message: message,
                 conversation_id: currentConversationId,
+                attachments: sendAttachments || [],
             }),
         });
 
@@ -188,7 +264,10 @@
                         scrollToBottom();
                         // 刷新侧边栏标题
                         if (conversationTitle && fullText) {
-                            conversationTitle.textContent = message.slice(0, 20) + (message.length > 20 ? '…' : '');
+                            const titleBase = message || (sendAttachments && sendAttachments[0] ? sendAttachments[0].name : '');
+                            if (titleBase) {
+                                conversationTitle.textContent = titleBase.slice(0, 20) + (titleBase.length > 20 ? '…' : '');
+                            }
                         }
                     }
                 } catch (e) {
@@ -200,14 +279,31 @@
 
     // ==================== 消息渲染 ====================
 
-    function appendMessage(role, content, isEmpty = false) {
+    function appendMessage(role, content, isEmpty = false, attachments = []) {
         const wrapper = document.createElement('div');
         wrapper.className = 'flex gap-3 animate-slide-in ' + (role === 'user' ? 'justify-end' : '');
 
         if (role === 'user') {
+            // 构建附件预览 HTML
+            let attachHtml = '';
+            if (attachments && attachments.length > 0) {
+                const items = attachments.map(a => {
+                    if (a.type === 'image' && a.url) {
+                        return `<div class="mt-2"><img src="${escapeHtml(a.url)}" alt="${escapeHtml(a.name)}" class="max-w-xs max-h-48 rounded-lg border border-nocturne-border"></div>`;
+                    }
+                    const icon = a.type === 'image' ? 'image' : 'file-text';
+                    return `<div class="flex items-center gap-2 mt-2 px-3 py-1.5 rounded-lg bg-nocturne-surface/60 border border-nocturne-border text-xs">
+                        <i data-lucide="${icon}" class="w-3.5 h-3.5 text-nocturne-mint flex-shrink-0"></i>
+                        <span class="truncate text-nocturne-text-muted">${escapeHtml(a.name)}</span>
+                        <span class="text-nocturne-text-dim flex-shrink-0">${formatFileSize(a.size)}</span>
+                    </div>`;
+                }).join('');
+                attachHtml = `<div class="mt-1">${items}</div>`;
+            }
+            const textHtml = content ? `<div class="message-content">${escapeHtml(content)}</div>` : '';
             wrapper.innerHTML = `
                 <div class="max-w-[80%] px-5 py-3 rounded-2xl rounded-br-sm border border-nocturne-mint/30 bg-nocturne-mint/5 text-sm">
-                    <div class="message-content">${escapeHtml(content)}</div>
+                    ${textHtml}${attachHtml}
                 </div>
             `;
         } else {
@@ -273,6 +369,128 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // ==================== 文件上传 ====================
+
+    function updateSendButton() {
+        const hasText = messageInput.value.length > 0;
+        const hasReady = attachments.some(a => a.status === 'done');
+        const hasUploading = attachments.some(a => a.status === 'uploading');
+        sendButton.disabled = isStreaming || hasUploading || (!hasText && !hasReady);
+    }
+
+    function formatFileSize(bytes) {
+        if (!bytes && bytes !== 0) return '';
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    async function handleFileUpload(file) {
+        // 大小限制 10MB
+        if (file.size > 10 * 1024 * 1024) {
+            alert(`文件 ${file.name} 超过 10MB 限制`);
+            return;
+        }
+
+        const id = ++attachmentIdSeq;
+        const placeholder = {
+            id,
+            name: file.name,
+            type: file.type.startsWith('image/') ? 'image' : 'file',
+            size: file.size,
+            content: '',
+            url: '',
+            status: 'uploading',
+        };
+        attachments.push(placeholder);
+        renderAttachmentsPreview();
+        updateSendButton();
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const resp = await fetch('/chat/api/upload/', {
+                method: 'POST',
+                body: formData,
+            });
+            const data = await resp.json();
+            if (!resp.ok || !data.success) {
+                const err = (data && data.error) || `上传失败 (${resp.status})`;
+                removeAttachment(id);
+                alert(`上传失败: ${err}`);
+                return;
+            }
+            const idx = attachments.findIndex(a => a.id === id);
+            if (idx === -1) return; // 已被移除
+            attachments[idx] = {
+                id,
+                name: data.name,
+                type: data.type,
+                size: data.size,
+                content: data.content || '',
+                url: data.url || '',
+                status: 'done',
+            };
+            renderAttachmentsPreview();
+            updateSendButton();
+        } catch (err) {
+            removeAttachment(id);
+            alert(`上传失败: ${err.message}`);
+            console.error(err);
+        }
+    }
+
+    function removeAttachment(id) {
+        attachments = attachments.filter(a => a.id !== id);
+        renderAttachmentsPreview();
+        updateSendButton();
+    }
+
+    function renderAttachmentsPreview() {
+        if (!attachmentsPreview) return;
+        if (attachments.length === 0) {
+            attachmentsPreview.classList.add('hidden');
+            attachmentsPreview.innerHTML = '';
+            return;
+        }
+        attachmentsPreview.classList.remove('hidden');
+        attachmentsPreview.innerHTML = attachments.map(a => {
+            if (a.type === 'image' && a.url && a.status === 'done') {
+                return `<div class="relative group">
+                    <img src="${escapeHtml(a.url)}" alt="${escapeHtml(a.name)}" class="w-16 h-16 object-cover rounded-lg border border-nocturne-border">
+                    <button type="button" data-remove-attach="${a.id}" class="absolute -top-1.5 -right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-nocturne-elevated border border-nocturne-border text-nocturne-text-muted hover:text-red-400 hover:border-red-400/50 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>`;
+            }
+            const icon = a.type === 'image' ? 'image' : 'file-text';
+            const statusBadge = a.status === 'uploading'
+                ? `<span class="text-nocturne-amber text-[10px] font-mono">上传中…</span>`
+                : `<span class="text-nocturne-text-dim text-[10px] font-mono">${formatFileSize(a.size)}</span>`;
+            return `<div class="relative group flex items-center gap-2 px-3 py-1.5 rounded-lg bg-nocturne-surface/60 border border-nocturne-border text-xs max-w-[220px]">
+                <i data-lucide="${icon}" class="w-3.5 h-3.5 text-nocturne-mint flex-shrink-0"></i>
+                <div class="flex flex-col min-w-0">
+                    <span class="truncate text-nocturne-text-muted">${escapeHtml(a.name)}</span>
+                    ${statusBadge}
+                </div>
+                <button type="button" data-remove-attach="${a.id}" class="flex-shrink-0 ml-1 w-4 h-4 flex items-center justify-center text-nocturne-text-dim hover:text-red-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>`;
+        }).join('');
+
+        // 绑定移除按钮
+        attachmentsPreview.querySelectorAll('[data-remove-attach]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = parseInt(btn.getAttribute('data-remove-attach'), 10);
+                removeAttachment(id);
+            });
+        });
+
+        if (window.lucide) lucide.createIcons();
     }
 
     // ==================== 启动 ====================

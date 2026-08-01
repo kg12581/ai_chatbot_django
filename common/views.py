@@ -1,6 +1,9 @@
 import json
 import logging
+import os
+from pathlib import Path
 
+from django.conf import settings
 from django.http import JsonResponse, StreamingHttpResponse, Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
@@ -91,8 +94,9 @@ def chat_stream(request):
         data = json.loads(request.body)
         user_message = data.get("message", "").strip()
         conversation_id = data.get("conversation_id")
+        attachments = data.get("attachments", [])  # [{"name", "type", "content", "size"}]
 
-        if not user_message:
+        if not user_message and not attachments:
             return JsonResponse({"error": "消息不能为空"}, status=400)
 
         # 获取或创建会话（按用户隔离，admin 也只能在自己的会话中聊天）
@@ -104,22 +108,36 @@ def chat_stream(request):
         else:
             conversation = Conversation.objects.create(title="新对话", user=request.user)
 
+        # 组装展示用消息（含附件信息）
+        display_message = user_message
+        if attachments:
+            attach_info = []
+            for a in attachments:
+                if a.get("type") == "image":
+                    attach_info.append(f"[图片: {a.get('name', '未命名')}]")
+                else:
+                    attach_info.append(f"[文件: {a.get('name', '未命名')}]")
+            display_message = (user_message + "\n\n" + "\n".join(attach_info)).strip() if user_message else "\n".join(attach_info)
+
         # 保存用户消息
         Message.objects.create(
             conversation=conversation,
             role="user",
-            content=user_message,
+            content=display_message,
         )
 
         # 如果是新会话，用第一条消息设置标题
         if conversation.title == "新对话":
-            conversation.title = user_message[:50]
+            conversation.title = (user_message or attachments[0]["name"])[:50]
             conversation.save()
 
-        # 构建历史消息
+        # 构建历史消息（注入附件内容到最后一条用户消息）
         history_messages = list(
             conversation.messages.values("role", "content")
         )
+        if attachments and history_messages:
+            augmented = _augment_with_attachments(user_message, attachments)
+            history_messages[-1]["content"] = augmented
 
         def event_stream():
             # 发送开始事件
@@ -162,6 +180,95 @@ def _call_deepseek(history_messages):
 
     for chunk in stream_chat(history_messages):
         yield chunk
+
+
+def _augment_with_attachments(user_message, attachments):
+    """将附件内容拼接到用户消息中，供 AI 分析。"""
+    parts = []
+    if user_message:
+        parts.append(user_message)
+
+    for a in attachments:
+        name = a.get("name", "未命名")
+        ftype = a.get("type", "file")
+        content = a.get("content", "")
+
+        if ftype == "image":
+            parts.append(f"\n[图片: {name}]（图片已接收，如需分析请描述其内容）")
+        else:
+            if content:
+                if len(content) > 8000:
+                    content = content[:8000] + f"\n... (已截断，共 {len(content)} 字符)"
+                parts.append(f"\n[文件: {name}]\n```\n{content}\n```")
+            else:
+                parts.append(f"\n[文件: {name}]（空文件或无法读取内容）")
+
+    return "\n".join(parts)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def upload_file(request):
+    """文件上传接口。返回文件信息（名称、类型、内容、大小）。"""
+    upload = request.FILES.get("file")
+    if not upload:
+        return JsonResponse({"success": False, "error": "未找到上传文件"}, status=400)
+
+    if upload.size > 10 * 1024 * 1024:
+        return JsonResponse({"success": False, "error": "文件超过 10MB 限制"}, status=400)
+
+    name = upload.name
+    ext = Path(name).suffix.lower()
+    size = upload.size
+
+    readable_exts = getattr(settings, "UPLOAD_READABLE_EXTS", set())
+    image_exts = getattr(settings, "UPLOAD_IMAGE_EXTS", set())
+
+    if ext in image_exts:
+        # 图片：保存到 media 目录
+        media_dir = Path(settings.MEDIA_ROOT) / "uploads"
+        media_dir.mkdir(parents=True, exist_ok=True)
+        import time
+        safe_name = f"{int(time.time())}_{name}"
+        file_path = media_dir / safe_name
+        with open(file_path, "wb") as f:
+            for chunk in upload.chunks():
+                f.write(chunk)
+        return JsonResponse({
+            "success": True,
+            "name": name,
+            "type": "image",
+            "size": size,
+            "url": f"{settings.MEDIA_URL}uploads/{safe_name}",
+            "content": "",
+        })
+
+    elif ext in readable_exts:
+        # 文本类：读取内容
+        try:
+            raw = upload.read()
+            try:
+                content = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                content = raw.decode("gbk", errors="replace")
+            if len(content) > 30000:
+                content = content[:30000] + f"\n... (已截断，共 {len(content)} 字符)"
+            return JsonResponse({
+                "success": True,
+                "name": name,
+                "type": "file",
+                "size": size,
+                "content": content,
+            })
+        except Exception as e:
+            return JsonResponse({"success": False, "error": f"读取失败: {e}"}, status=500)
+
+    else:
+        return JsonResponse({
+            "success": False,
+            "error": f"不支持的文件类型: {ext}"
+        }, status=400)
 
 
 @login_required

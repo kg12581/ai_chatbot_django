@@ -153,3 +153,23 @@ DEFAULT_FROM_EMAIL = "no-reply@nocturne.ai"
 # EMAIL_HOST_USER = "your_email@qq.com"
 # EMAIL_HOST_PASSWORD = "your_auth_code"
 # DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+
+# ==================== 文件上传配置 ====================
+import os as _os
+MEDIA_URL = "/media/"
+MEDIA_ROOT = _os.path.join(BASE_DIR, "media")
+# 单文件大小限制 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
+# 可读取的文本文件后缀（用于 AI 分析）
+UPLOAD_READABLE_EXTS = {
+    ".txt", ".md", ".py", ".js", ".ts", ".jsx", ".tsx",
+    ".java", ".c", ".cpp", ".h", ".hpp", ".go", ".rs", ".rb", ".php",
+    ".html", ".css", ".scss", ".vue", ".svelte",
+    ".json", ".yaml", ".yml", ".toml", ".ini", ".cfg",
+    ".sh", ".bash", ".sql", ".xml", ".csv", ".log",
+}
+# 允许的图片后缀
+UPLOAD_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp"}

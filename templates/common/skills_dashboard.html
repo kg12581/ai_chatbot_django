@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Skill 与 MCP 配置 · Nocturne AI{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-8 md:py-12">
+
+    <!-- 页头 -->
+    <header class="mb-10 animate-fade-up">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-1 h-8 rounded-full bg-nocturne-mint shadow-[0_0_12px_rgba(94,234,212,0.6)]"></div>
+            <h1 class="text-3xl md:text-4xl font-display font-semibold tracking-tight">
+                Skill <span class="text-nocturne-mint">·</span> MCP 配置
+            </h1>
+        </div>
+        <p class="text-nocturne-text-muted ml-4">自定义 Prompt 模板与 MCP 工具，让 AI 对话更智能</p>
+    </header>
+
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10 animate-fade-up" style="animation-delay:0.1s">
+        <div class="p-5 rounded-2xl border border-nocturne-border/60 bg-nocturne-surface/50 backdrop-blur-sm">
+            <div class="flex items-center justify-between mb-2">
+                <i data-lucide="sparkles" class="w-5 h-5 text-nocturne-mint"></i>
+                <span class="text-xs text-nocturne-text-dim font-mono">SKILL</span>
+            </div>
+            <div class="text-2xl font-bold">{{ stats.skills_active }}<span class="text-nocturne-text-dim text-base font-normal"> / {{ stats.skills_total }}</span></div>
+            <div class="text-xs text-nocturne-text-muted mt-1">已激活 / 总数</div>
+        </div>
+        <div class="p-5 rounded-2xl border border-nocturne-border/60 bg-nocturne-surface/50 backdrop-blur-sm">
+            <div class="flex items-center justify-between mb-2">
+                <i data-lucide="server" class="w-5 h-5 text-nocturne-amber"></i>
+                <span class="text-xs text-nocturne-text-dim font-mono">MCP SERVER</span>
+            </div>
+            <div class="text-2xl font-bold">{{ stats.mcp_servers_enabled }}<span class="text-nocturne-text-dim text-base font-normal"> / {{ stats.mcp_servers_total }}</span></div>
+            <div class="text-xs text-nocturne-text-muted mt-1">已启用 / 总数</div>
+        </div>
+        <div class="p-5 rounded-2xl border border-nocturne-border/60 bg-nocturne-surface/50 backdrop-blur-sm col-span-2 md:col-span-1">
+            <div class="flex items-center justify-between mb-2">
+                <i data-lucide="wrench" class="w-5 h-5 text-blue-400"></i>
+                <span class="text-xs text-nocturne-text-dim font-mono">MCP TOOL</span>
+            </div>
+            <div class="text-2xl font-bold">{{ stats.mcp_tools_enabled }}<span class="text-nocturne-text-dim text-base font-normal"> / {{ stats.mcp_tools_total }}</span></div>
+            <div class="text-xs text-nocturne-text-muted mt-1">已启用 / 总数</div>
+        </div>
+    </div>
+
+    <!-- Tab 切换 -->
+    <div class="flex gap-2 mb-6 p-1 rounded-xl bg-nocturne-surface/60 border border-nocturne-border/40 w-fit">
+        <button id="tab-skills" onclick="switchTab('skills')" class="px-5 py-2 rounded-lg text-sm font-medium transition-all bg-nocturne-mint/15 text-nocturne-mint">
+            <i data-lucide="sparkles" class="w-4 h-4 inline mr-1"></i> Skill 模板
+        </button>
+        <button id="tab-mcp" onclick="switchTab('mcp')" class="px-5 py-2 rounded-lg text-sm font-medium transition-all text-nocturne-text-muted hover:text-nocturne-text-primary">
+            <i data-lucide="plug" class="w-4 h-4 inline mr-1"></i> MCP 配置
+        </button>
+    </div>
+
+    <!-- ===== Skill 面板 ===== -->
+    <div id="panel-skills" class="animate-fade-in">
+        <!-- 新建按钮 -->
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-semibold flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-5 h-5 text-nocturne-mint"></i>
+                Prompt 模板
+            </h2>
+            <button onclick="openSkillModal()" class="px-4 py-2 text-sm font-medium text-nocturne-bg bg-nocturne-mint rounded-lg hover:scale-105 transition-transform flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i> 新建 Skill
+            </button>
+        </div>
+
+        <!-- Skill 卡片网格 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for skill in skills %}
+            <div class="skill-card group p-5 rounded-2xl border transition-all cursor-pointer
+                        {% if skill.is_active %}
+                            border-nocturne-mint/40 bg-nocturne-mint/5
+                        {% else %}
+                            border-nocturne-border/50 bg-nocturne-surface/40 hover:border-nocturne-border
+                        {% endif %}"
+                 data-skill-id="{{ skill.id }}"
+                 onclick="editSkill({{ skill.id }})">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-9 h-9 rounded-xl flex items-center justify-center
+                                    {% if skill.color == 'mint' %}bg-nocturne-mint/15 text-nocturne-mint
+                                    {% elif skill.color == 'amber' %}bg-nocturne-amber/15 text-nocturne-amber
+                                    {% elif skill.color == 'blue' %}bg-blue-500/15 text-blue-400
+                                    {% elif skill.color == 'purple' %}bg-purple-500/15 text-purple-400
+                                    {% elif skill.color == 'red' %}bg-red-500/15 text-red-400
+                                    {% elif skill.color == 'pink' %}bg-pink-500/15 text-pink-400
+                                    {% endif %}">
+                            <i data-lucide="{{ skill.icon }}" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-sm">{{ skill.name }}</h3>
+                            <p class="text-xs text-nocturne-text-dim font-mono">{{ skill.color }}</p>
+                        </div>
+                    </div>
+                    <!-- 激活开关 -->
+                    <button onclick="event.stopPropagation(); toggleSkill({{ skill.id }}, this)"
+                            class="relative w-10 h-6 rounded-full transition-colors {% if skill.is_active %}bg-nocturne-mint{% else %}bg-nocturne-border{% endif %}">
+                        <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform {% if skill.is_active %}translate-x-4{% endif %}"></span>
+                    </button>
+                </div>
+                <p class="text-xs text-nocturne-text-muted mb-3 line-clamp-2">{{ skill.description|default:"（无描述）" }}</p>
+                <div class="text-xs text-nocturne-text-dim font-mono bg-nocturne-bg/50 rounded p-2 line-clamp-2">{{ skill.system_prompt|truncatechars:120 }}</div>
+                <div class="flex items-center justify-between mt-3 text-xs text-nocturne-text-dim">
+                    <span>{% if skill.created_by %}{{ skill.created_by.username }}{% else %}系统{% endif %}</span>
+                    <span>{{ skill.updated_at|date:"m-d H:i" }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full text-center py-16 text-nocturne-text-dim">
+                <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-40"></i>
+                <p>暂无 Skill，点击右上角「新建 Skill」创建第一个</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ===== MCP 面板 ===== -->
+    <div id="panel-mcp" class="hidden animate-fade-in">
+        <!-- MCP 服务器 -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <i data-lucide="server" class="w-5 h-5 text-nocturne-amber"></i>
+                    外部 MCP 服务器
+                </h2>
+                <button onclick="openMcpServerModal()" class="px-4 py-2 text-sm font-medium text-nocturne-amber border border-nocturne-amber/30 rounded-lg hover:bg-nocturne-amber/10 transition-colors flex items-center gap-2">
+                    <i data-lucide="plus" class="w-4 h-4"></i> 添加服务器
+                </button>
+            </div>
+            <div class="overflow-x-auto rounded-2xl border border-nocturne-border/50">
+                <table class="w-full text-sm">
+                    <thead class="bg-nocturne-surface/60 text-nocturne-text-muted">
+                        <tr>
+                            <th class="text-left p-3 font-medium">名称</th>
+                            <th class="text-left p-3 font-medium">传输方式</th>
+                            <th class="text-left p-3 font-medium hidden md:table-cell">地址/命令</th>
+                            <th class="text-left p-3 font-medium">状态</th>
+                            <th class="text-right p-3 font-medium">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for server in mcp_servers %}
+                        <tr class="border-t border-nocturne-border/40 hover:bg-nocturne-surface/30">
+                            <td class="p-3">
+                                <div class="font-medium">{{ server.name }}</div>
+                                {% if server.description %}<div class="text-xs text-nocturne-text-dim">{{ server.description }}</div>{% endif %}
+                            </td>
+                            <td class="p-3"><span class="px-2 py-0.5 text-xs rounded font-mono bg-nocturne-border/40">{{ server.transport }}</span></td>
+                            <td class="p-3 hidden md:table-cell text-xs text-nocturne-text-muted font-mono max-w-xs truncate">{{ server.command|default:server.url|default:"—" }}</td>
+                            <td class="p-3">
+                                <button onclick="toggleMcpServer({{ server.id }}, this)"
+                                        class="relative w-10 h-6 rounded-full transition-colors {% if server.enabled %}bg-nocturne-amber{% else %}bg-nocturne-border{% endif %}">
+                                    <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform {% if server.enabled %}translate-x-4{% endif %}"></span>
+                                </button>
+                            </td>
+                            <td class="p-3 text-right">
+                                <button onclick="deleteMcpServer({{ server.id }}, '{{ server.name }}')" class="text-red-400/70 hover:text-red-400 text-xs">
+                                    <i data-lucide="trash-2" class="w-4 h-4 inline"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="p-8 text-center text-nocturne-text-dim">暂无 MCP 服务器</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 自建 MCP 工具 -->
+        <div>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold flex items-center gap-2">
+                    <i data-lucide="wrench" class="w-5 h-5 text-blue-400"></i>
+                    项目自建工具
+                </h2>
+                <span class="text-xs text-nocturne-text-dim">在 Admin 后台管理</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {% for tool in mcp_tools %}
+                <div class="p-4 rounded-xl border border-nocturne-border/50 bg-nocturne-surface/40 flex items-center justify-between">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="font-medium text-sm">{{ tool.name }}</span>
+                            <span class="px-1.5 py-0.5 text-xs rounded bg-blue-500/15 text-blue-400">{{ tool.get_category_display }}</span>
+                        </div>
+                        <p class="text-xs text-nocturne-text-muted truncate">{{ tool.description }}</p>
+                        <p class="text-xs text-nocturne-text-dim font-mono mt-1 truncate">{{ tool.func_path }}</p>
+                    </div>
+                    <button onclick="toggleMcpTool({{ tool.id }}, this)"
+                            class="relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ml-3 {% if tool.enabled %}bg-blue-400{% else %}bg-nocturne-border{% endif %}">
+                        <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform {% if tool.enabled %}translate-x-4{% endif %}"></span>
+                    </button>
+                </div>
+                {% empty %}
+                <div class="col-span-full text-center py-8 text-nocturne-text-dim text-sm">暂无自建工具</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== Skill 创建/编辑 Modal ===== -->
+<div id="skillModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="w-full max-w-2xl mx-4 rounded-2xl border border-nocturne-border bg-nocturne-elevated shadow-2xl">
+        <div class="flex items-center justify-between p-5 border-b border-nocturne-border/60">
+            <h3 id="skillModalTitle" class="text-lg font-semibold">新建 Skill</h3>
+            <button onclick="closeSkillModal()" class="text-nocturne-text-muted hover:text-nocturne-text-primary">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+            <input type="hidden" id="skillId" value="">
+            <div>
+                <label class="block text-sm text-nocturne-text-muted mb-1.5">名称 <span class="text-red-400">*</span></label>
+                <input id="skillName" type="text" maxlength="100" placeholder="例如：代码审查专家"
+                       class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm focus:border-nocturne-mint focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm text-nocturne-text-muted mb-1.5">描述</label>
+                <input id="skillDescription" type="text" maxlength="500" placeholder="简要描述这个 Skill 的用途"
+                       class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm focus:border-nocturne-mint focus:outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm text-nocturne-text-muted mb-1.5">图标 (Lucide)</label>
+                    <input id="skillIcon" type="text" value="sparkles" placeholder="如 code, database, terminal"
+                           class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm focus:border-nocturne-mint focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm text-nocturne-text-muted mb-1.5">主题色</label>
+                    <select id="skillColor" class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm focus:border-nocturne-mint focus:outline-none">
+                        <option value="mint">薄荷绿</option>
+                        <option value="amber">琥珀金</option>
+                        <option value="blue">蓝色</option>
+                        <option value="purple">紫色</option>
+                        <option value="red">红色</option>
+                        <option value="pink">粉色</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm text-nocturne-text-muted mb-1.5">System Prompt <span class="text-red-400">*</span></label>
+                <textarea id="skillPrompt" rows="8" placeholder="激活后会追加到 AI 的 system prompt 中。例如：&#10;你现在是一个代码审查专家，请从以下维度审查代码：&#10;1. 安全性&#10;2. 性能&#10;3. 可读性&#10;4. 最佳实践"
+                          class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm font-mono focus:border-nocturne-mint focus:outline-none resize-y"></textarea>
+                <p class="text-xs text-nocturne-text-dim mt-1">支持多行，激活后自动注入到对话的 system prompt</p>
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 p-5 border-t border-nocturne-border/60">
+            <button onclick="closeSkillModal()" class="px-4 py-2 text-sm text-nocturne-text-muted hover:text-nocturne-text-primary">取消</button>
+            <button onclick="saveSkill()" class="px-5 py-2 text-sm font-medium text-nocturne-bg bg-nocturne-mint rounded-lg hover:scale-105 transition-transform">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MCP Server Modal ===== -->
+<div id="mcpServerModal" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div class="w-full max-w-xl mx-4 rounded-2xl border border-nocturne-border bg-nocturne-elevated shadow-2xl">
+        <div class="flex items-center justify-between p-5 border-b border-nocturne-border/60">
+            <h3 class="text-lg font-semibold">添加 MCP 服务器</h3>
+            <button onclick="closeMcpServerModal()" class="text-nocturne-text-muted hover:text-nocturne-text-primary">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+        <div class="p-5 space-y-4">
+            <div>
+                <label class="block text-sm text-nocturne-text-muted mb-1.5">名称 <span class="text-red-400">*</span></label>
+                <input id="mcpName" type="text" placeholder="例如：Filesystem Server"
+                       class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm focus:border-nocturne-amber focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm text-nocturne-text-muted mb-1.5">描述</label>
+                <input id="mcpDescription" type="text" placeholder="简要描述"
+                       class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm focus:border-nocturne-amber focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm text-nocturne-text-muted mb-1.5">传输方式</label>
+                <select id="mcpTransport" class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm focus:border-nocturne-amber focus:outline-none">
+                    <option value="stdio">STDIO（本地进程）</option>
+                    <option value="sse">SSE（Server-Sent Events）</option>
+                    <option value="streamable_http">Streamable HTTP</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm text-nocturne-text-muted mb-1.5">启动命令 (STDIO)</label>
+                <input id="mcpCommand" type="text" placeholder="如 npx -y @modelcontextprotocol/server-filesystem /tmp"
+                       class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm font-mono focus:border-nocturne-amber focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm text-nocturne-text-muted mb-1.5">服务地址 (SSE/HTTP)</label>
+                <input id="mcpUrl" type="text" placeholder="如 http://localhost:3001/sse"
+                       class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm font-mono focus:border-nocturne-amber focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-sm text-nocturne-text-muted mb-1.5">环境变量 (JSON)</label>
+                <input id="mcpEnvVars" type="text" placeholder='{"API_KEY": "xxx"}'
+                       class="w-full px-4 py-2.5 rounded-lg bg-nocturne-bg border border-nocturne-border text-sm font-mono focus:border-nocturne-amber focus:outline-none">
+            </div>
+        </div>
+        <div class="flex justify-end gap-3 p-5 border-t border-nocturne-border/60">
+            <button onclick="closeMcpServerModal()" class="px-4 py-2 text-sm text-nocturne-text-muted hover:text-nocturne-text-primary">取消</button>
+            <button onclick="saveMcpServer()" class="px-5 py-2 text-sm font-medium text-nocturne-bg bg-nocturne-amber rounded-lg hover:scale-105 transition-transform">保存</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// CSRF token
+const CSRF_TOKEN = "{{ csrf_token }}";
+
+function getCookie(name) {
+    const v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? v.pop() : '';
+}
+
+async function api(url, method = 'GET', body = null) {
+    const opts = {
+        method,
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken') || CSRF_TOKEN,
+        },
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
+    return res.json();
+}
+
+// ===== Tab 切换 =====
+function switchTab(tab) {
+    const skillsBtn = document.getElementById('tab-skills');
+    const mcpBtn = document.getElementById('tab-mcp');
+    const skillsPanel = document.getElementById('panel-skills');
+    const mcpPanel = document.getElementById('panel-mcp');
+    if (tab === 'skills') {
+        skillsBtn.classList.add('bg-nocturne-mint/15', 'text-nocturne-mint');
+        skillsBtn.classList.remove('text-nocturne-text-muted');
+        mcpBtn.classList.remove('bg-nocturne-amber/15', 'text-nocturne-amber');
+        mcpBtn.classList.add('text-nocturne-text-muted');
+        skillsPanel.classList.remove('hidden');
+        mcpPanel.classList.add('hidden');
+    } else {
+        mcpBtn.classList.add('bg-nocturne-amber/15', 'text-nocturne-amber');
+        mcpBtn.classList.remove('text-nocturne-text-muted');
+        skillsBtn.classList.remove('bg-nocturne-mint/15', 'text-nocturne-mint');
+        skillsBtn.classList.add('text-nocturne-text-muted');
+        mcpPanel.classList.remove('hidden');
+        skillsPanel.classList.add('hidden');
+    }
+    if (window.lucide) lucide.createIcons();
+}
+
+// ===== Skill Modal =====
+function openSkillModal() {
+    document.getElementById('skillId').value = '';
+    document.getElementById('skillModalTitle').textContent = '新建 Skill';
+    document.getElementById('skillName').value = '';
+    document.getElementById('skillDescription').value = '';
+    document.getElementById('skillIcon').value = 'sparkles';
+    document.getElementById('skillColor').value = 'mint';
+    document.getElementById('skillPrompt').value = '';
+    const modal = document.getElementById('skillModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeSkillModal() {
+    const modal = document.getElementById('skillModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function editSkill(id) {
+    try {
+        const data = await api(`/skills/api/${id}/`);
+        if (data.id) {
+            document.getElementById('skillId').value = data.id;
+            document.getElementById('skillModalTitle').textContent = '编辑 Skill';
+            document.getElementById('skillName').value = data.name;
+            document.getElementById('skillDescription').value = data.description;
+            document.getElementById('skillIcon').value = data.icon;
+            document.getElementById('skillColor').value = data.color;
+            document.getElementById('skillPrompt').value = data.system_prompt;
+            const modal = document.getElementById('skillModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            if (window.lucide) lucide.createIcons();
+        }
+    } catch (e) {
+        alert('加载失败: ' + e);
+    }
+}
+
+async function saveSkill() {
+    const id = document.getElementById('skillId').value;
+    const payload = {
+        name: document.getElementById('skillName').value.trim(),
+        description: document.getElementById('skillDescription').value.trim(),
+        icon: document.getElementById('skillIcon').value.trim() || 'sparkles',
+        color: document.getElementById('skillColor').value,
+        system_prompt: document.getElementById('skillPrompt').value.trim(),
+    };
+    if (!payload.name || !payload.system_prompt) {
+        alert('名称和 System Prompt 必填');
+        return;
+    }
+    try {
+        const url = id ? `/skills/api/${id}/update/` : '/skills/api/create/';
+        const res = await api(url, 'POST', payload);
+        if (res.success) {
+            closeSkillModal();
+            location.reload();
+        } else {
+            alert('保存失败: ' + (res.error || '未知错误'));
+        }
+    } catch (e) {
+        alert('请求失败: ' + e);
+    }
+}
+
+async function toggleSkill(id, btn) {
+    try {
+        const res = await api(`/skills/api/${id}/toggle/`, 'POST');
+        if (res.success) {
+            const card = btn.closest('.skill-card');
+            if (res.is_active) {
+                btn.classList.remove('bg-nocturne-border');
+                btn.classList.add('bg-nocturne-mint');
+                btn.querySelector('span').classList.add('translate-x-4');
+                card.classList.add('border-nocturne-mint/40', 'bg-nocturne-mint/5');
+                card.classList.remove('border-nocturne-border/50', 'bg-nocturne-surface/40');
+            } else {
+                btn.classList.remove('bg-nocturne-mint');
+                btn.classList.add('bg-nocturne-border');
+                btn.querySelector('span').classList.remove('translate-x-4');
+                card.classList.remove('border-nocturne-mint/40', 'bg-nocturne-mint/5');
+                card.classList.add('border-nocturne-border/50', 'bg-nocturne-surface/40');
+            }
+        }
+    } catch (e) {
+        alert('切换失败: ' + e);
+    }
+}
+
+// 删除 Skill（通过编辑 modal 中的删除按钮，这里简化为确认）
+async function deleteSkill(id, name) {
+    if (!confirm(`确定删除 Skill "${name}" 吗？`)) return;
+    try {
+        const res = await api(`/skills/api/${id}/delete/`, 'DELETE');
+        if (res.success) location.reload();
+        else alert('删除失败: ' + (res.error || ''));
+    } catch (e) {
+        alert('请求失败: ' + e);
+    }
+}
+
+// ===== MCP Server Modal =====
+function openMcpServerModal() {
+    ['mcpName','mcpDescription','mcpCommand','mcpUrl','mcpEnvVars'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('mcpTransport').value = 'stdio';
+    const modal = document.getElementById('mcpServerModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    if (window.lucide) lucide.createIcons();
+}
+
+function closeMcpServerModal() {
+    const modal = document.getElementById('mcpServerModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+async function saveMcpServer() {
+    const payload = {
+        name: document.getElementById('mcpName').value.trim(),
+        description: document.getElementById('mcpDescription').value.trim(),
+        transport: document.getElementById('mcpTransport').value,
+        command: document.getElementById('mcpCommand').value.trim(),
+        url: document.getElementById('mcpUrl').value.trim(),
+        env_vars: document.getElementById('mcpEnvVars').value.trim(),
+        enabled: false,
+    };
+    if (!payload.name) { alert('名称必填'); return; }
+    try {
+        const res = await api('/skills/api/mcp/server/create/', 'POST', payload);
+        if (res.success) {
+            closeMcpServerModal();
+            location.reload();
+        } else {
+            alert('保存失败: ' + (res.error || ''));
+        }
+    } catch (e) {
+        alert('请求失败: ' + e);
+    }
+}
+
+async function toggleMcpServer(id, btn) {
+    try {
+        const res = await api(`/skills/api/mcp/server/${id}/toggle/`, 'POST');
+        if (res.success) {
+            if (res.enabled) {
+                btn.classList.remove('bg-nocturne-border');
+                btn.classList.add('bg-nocturne-amber');
+                btn.querySelector('span').classList.add('translate-x-4');
+            } else {
+                btn.classList.remove('bg-nocturne-amber');
+                btn.classList.add('bg-nocturne-border');
+                btn.querySelector('span').classList.remove('translate-x-4');
+            }
+        }
+    } catch (e) { alert('切换失败: ' + e); }
+}
+
+async function deleteMcpServer(id, name) {
+    if (!confirm(`确定删除 MCP 服务器 "${name}" 吗？`)) return;
+    try {
+        const res = await api(`/skills/api/mcp/server/${id}/delete/`, 'DELETE');
+        if (res.success) location.reload();
+        else alert('删除失败: ' + (res.error || ''));
+    } catch (e) { alert('请求失败: ' + e); }
+}
+
+async function toggleMcpTool(id, btn) {
+    try {
+        const res = await api(`/skills/api/mcp/tool/${id}/toggle/`, 'POST');
+        if (res.success) {
+            if (res.enabled) {
+                btn.classList.remove('bg-nocturne-border');
+                btn.classList.add('bg-blue-400');
+                btn.querySelector('span').classList.add('translate-x-4');
+            } else {
+                btn.classList.remove('bg-blue-400');
+                btn.classList.add('bg-nocturne-border');
+                btn.querySelector('span').classList.remove('translate-x-4');
+            }
+        }
+    } catch (e) { alert('切换失败: ' + e); }
+}
+
+// 初始化图标
+document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) lucide.createIcons();
+});
+</script>
+{% endblock %}

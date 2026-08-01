@@ -43,3 +43,7 @@ class Message(models.Model):
 
     def __str__(self):
         return f"[{self.role}] {self.content[:50]}"
+
+
+# MCP 与 Skill 模型
+from .mcp_models import McpServer, McpTool, Skill  # noqa: E402,F401

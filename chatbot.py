@@ -13,6 +13,10 @@
 
 import logging
 import os
+import shutil
+import subprocess
+import tempfile
+from pathlib import Path
 from typing import Annotated
 
 from dotenv import load_dotenv
@@ -148,9 +152,254 @@ def execute_ssh_command(command: str) -> str:
         return f"SSH 执行失败: {e}"
 
 
+# ==================== GitHub 仓库分析工具 ====================
+
+_GITHUB_REPO_CACHE = {}  # repo_url -> {repo_dir, files}
+
+# 忽略的文件/目录（不读取大文件、二进制文件、第三方库等）
+_GITHUB_IGNORE_DIRS = {
+    ".git", "node_modules", "__pycache__", ".venv", "venv", "env",
+    "dist", "build", ".idea", ".vscode", "target", "vendor",
+}
+_GITHUB_READABLE_EXTS = {
+    ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".cpp", ".c", ".h", ".hpp",
+    ".go", ".rs", ".rb", ".php", ".cs", ".swift", ".kt", ".scala",
+    ".html", ".css", ".scss", ".vue", ".svelte",
+    ".json", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".conf",
+    ".md", ".txt", ".sh", ".bash", ".zsh", ".dockerfile",
+    ".sql", ".xml", ".proto",
+}
+_GITHUB_MAX_FILE_SIZE = 50 * 1024  # 单文件最大 50KB
+
+
+def _safe_join(base: str, rel: str) -> Path:
+    """安全路径拼接，防止目录穿越。"""
+    base_p = Path(base).resolve()
+    target = (base_p / rel).resolve()
+    if base_p not in target.parents and target != base_p:
+        raise ValueError(f"路径非法: {rel}")
+    return target
+
+
+def _repo_key(url: str) -> str:
+    """从 URL 提取仓库标识（owner/repo）。"""
+    url = url.rstrip("/").rstrip(".git")
+    if url.startswith("https://github.com/"):
+        return "/".join(url.replace("https://github.com/", "").split("/")[:2])
+    return url
+
+
+@tool
+def github_clone_repo(repo_url: str) -> str:
+    """克隆一个 GitHub 仓库到本地临时目录（仅克隆最新 1 个 commit，速度快）。
+
+    Args:
+        repo_url: GitHub 仓库地址，例如 https://github.com/kg12581/ai_chatbot_django
+    Returns:
+        仓库标识（owner/repo）和基础文件列表
+    """
+    key = _repo_key(repo_url)
+    if key in _GITHUB_REPO_CACHE:
+        info = _GITHUB_REPO_CACHE[key]
+        return f"仓库已缓存: {key}\n目录: {info['repo_dir']}\n{info['file_tree_preview']}"
+
+    try:
+        tmp = Path(tempfile.mkdtemp(prefix="ghrepo_")).resolve()
+        repo_name = Path(repo_url.rstrip("/").rstrip(".git").split("/")[-1])
+        repo_dir = str((tmp / repo_name).resolve())
+
+        proc = subprocess.run(
+            ["git", "clone", "--depth", "1", "--single-branch", repo_url, repo_dir],
+            capture_output=True, text=True, timeout=120,
+        )
+        if proc.returncode != 0:
+            shutil.rmtree(str(tmp), ignore_errors=True)
+            return f"克隆失败: {proc.stderr[:500]}"
+
+        # 构建文件树
+        files = []
+        repo_dir_path = Path(repo_dir)
+        for p in repo_dir_path.rglob("*"):
+            if not p.is_file():
+                continue
+            rel = p.relative_to(repo_dir_path).as_posix()
+            parts = set(rel.split("/"))
+            if _GITHUB_IGNORE_DIRS & parts:
+                continue
+            files.append(rel)
+        files.sort()
+
+        # 文件树预览（前 150 个文件）
+        preview_lines = []
+        for f in files[:150]:
+            preview_lines.append(f)
+        if len(files) > 150:
+            preview_lines.append(f"... 还有 {len(files) - 150} 个文件")
+        tree_preview = f"共 {len(files)} 个文件:\n" + "\n".join(preview_lines)
+
+        _GITHUB_REPO_CACHE[key] = {
+            "repo_dir": repo_dir,
+            "tmp_dir": tmp,
+            "files": files,
+            "file_tree_preview": tree_preview,
+        }
+
+        return f"✅ 已克隆: {key}\n目录: {repo_dir}\n{tree_preview}"
+    except subprocess.TimeoutExpired:
+        return "克隆超时（120 秒）。"
+    except Exception as e:
+        return f"克隆失败: {e}"
+
+
+@tool
+def github_list_files(repo_url: str, directory: str = "", pattern: str = "") -> str:
+    """列出已克隆仓库的指定目录下的文件，支持按后缀过滤。
+
+    Args:
+        repo_url: GitHub 仓库地址（必须先调用 github_clone_repo 克隆）
+        directory: 子目录，留空表示根目录
+        pattern: 文件名后缀过滤，例如 .py 或 .ts
+    Returns:
+        匹配的文件列表
+    """
+    key = _repo_key(repo_url)
+    if key not in _GITHUB_REPO_CACHE:
+        return "仓库未克隆，请先调用 github_clone_repo。"
+    info = _GITHUB_REPO_CACHE[key]
+
+    try:
+        base = _safe_join(info["repo_dir"], directory)
+    except ValueError:
+        return "目录路径非法。"
+    if not base.is_dir():
+        return f"目录不存在: {directory or '/'}"
+
+    result = []
+    for p in sorted(base.rglob("*")):
+        if not p.is_file():
+            continue
+        rel = p.relative_to(info["repo_dir"]).as_posix()
+        parts = set(rel.split("/"))
+        if _GITHUB_IGNORE_DIRS & parts:
+            continue
+        if pattern and not rel.lower().endswith(pattern.lower()):
+            continue
+        # 只列当前目录层级 + 1 层深度的，避免返回过多
+        depth_diff = len(Path(rel).parts) - len((Path(directory) if directory else Path("")).parts)
+        if depth_diff <= 2:
+            try:
+                sz = p.stat().st_size
+                sz_str = f"{sz/1024:.1f}KB" if sz < 1024*1024 else f"{sz/1024/1024:.1f}MB"
+                result.append(f"{rel}  ({sz_str})")
+            except OSError:
+                result.append(rel)
+        if len(result) >= 200:
+            result.append("... (结果过多，已截断到 200 条)")
+            break
+    return "\n".join(result) if result else "(无匹配文件)"
+
+
+@tool
+def github_read_file(repo_url: str, file_path: str, start_line: int = 0, max_lines: int = 300) -> str:
+    """读取已克隆仓库中的指定文件内容，支持按行范围读取。
+
+    Args:
+        repo_url: GitHub 仓库地址
+        file_path: 仓库内的文件相对路径，例如 common/views.py
+        start_line: 起始行号（从 0 开始，留空表示从头读）
+        max_lines: 最多读取行数，默认 300
+    Returns:
+        文件内容（带行号）
+    """
+    key = _repo_key(repo_url)
+    if key not in _GITHUB_REPO_CACHE:
+        return "仓库未克隆，请先调用 github_clone_repo。"
+    info = _GITHUB_REPO_CACHE[key]
+
+    try:
+        target = _safe_join(info["repo_dir"], file_path)
+    except ValueError:
+        return "文件路径非法。"
+
+    if not target.is_file():
+        return f"文件不存在: {file_path}"
+
+    ext = target.suffix.lower()
+    if ext not in _GITHUB_READABLE_EXTS and ext != "":
+        return f"文件类型 {ext} 不支持读取（可能是二进制文件）。"
+
+    try:
+        size = target.stat().st_size
+        if size > _GITHUB_MAX_FILE_SIZE:
+            return f"文件过大 ({size/1024:.1f}KB)，超过 {_GITHUB_MAX_FILE_SIZE/1024:.0f}KB 限制。"
+        content = target.read_text(encoding="utf-8", errors="replace")
+    except Exception as e:
+        return f"读取失败: {e}"
+
+    lines = content.splitlines()
+    end_line = min(start_line + max_lines, len(lines))
+    snippet = lines[start_line:end_line]
+
+    numbered = []
+    for i, line in enumerate(snippet, start=start_line + 1):
+        numbered.append(f"{i:5d}| {line}")
+
+    header = f"文件: {file_path}  (共 {len(lines)} 行，显示 {start_line+1}-{end_line})"
+    return header + "\n" + "\n".join(numbered)
+
+
+@tool
+def github_search_code(repo_url: str, keyword: str) -> str:
+    """在已克隆仓库中全文搜索关键词，返回匹配的文件和行号。
+
+    Args:
+        repo_url: GitHub 仓库地址
+        keyword: 搜索关键词，支持简单字符串匹配（区分大小写）
+    Returns:
+        匹配结果列表
+    """
+    key = _repo_key(repo_url)
+    if key not in _GITHUB_REPO_CACHE:
+        return "仓库未克隆，请先调用 github_clone_repo。"
+    info = _GITHUB_REPO_CACHE[key]
+
+    if not keyword or len(keyword) < 2:
+        return "关键词太短（至少 2 个字符）。"
+
+    results = []
+    for rel in info["files"]:
+        ext = Path(rel).suffix.lower()
+        if ext not in _GITHUB_READABLE_EXTS and ext != "":
+            continue
+        try:
+            target = info["repo_dir"] / Path(rel)
+            if target.stat().st_size > _GITHUB_MAX_FILE_SIZE:
+                continue
+            lines = target.read_text(encoding="utf-8", errors="replace").splitlines()
+        except Exception:
+            continue
+        for i, line in enumerate(lines, 1):
+            if keyword in line:
+                snippet = line.strip()[:120]
+                results.append(f"{rel}:{i}  {snippet}")
+                if len(results) >= 80:
+                    break
+        if len(results) >= 80:
+            results.append("... (结果过多，已截断到 80 条)")
+            break
+    return "\n".join(results) if results else f"未找到包含 '{keyword}' 的代码。"
+
+
 # ==================== LangGraph Agent 工作流 ====================
 
-tools = [retrieve_relevant_documents, execute_ssh_command]
+tools = [
+    retrieve_relevant_documents,
+    execute_ssh_command,
+    github_clone_repo,
+    github_list_files,
+    github_read_file,
+    github_search_code,
+]
 llm_with_tools = llm.bind_tools(tools)
 
 
@@ -167,11 +416,38 @@ def _chatbot_node(state: State):
         "1. retrieve_relevant_documents: 检索本地知识库中的相关文档\n"
         "2. execute_ssh_command: 在 Rocky Linux 远程服务器上执行命令\n"
         "   - 可用于查看服务器状态、进程、日志、文件等\n"
-        "   - 例如：hostname、uptime、ps aux、df -h、free -m、cat /etc/os-release\n"
-        "   - 禁止执行危险命令（rm -rf、shutdown 等）\n\n"
+        "   - 例如：hostname、uptime、ps aux、df -h、free -m\n"
+        "   - 禁止执行危险命令（rm -rf、shutdown 等）\n"
+        "3. github_clone_repo: 克隆 GitHub 仓库到本地（仅 latest commit，速度快）\n"
+        "   - 参数: repo_url (例如 https://github.com/kg12581/ai_chatbot_django)\n"
+        "4. github_list_files: 列出已克隆仓库的目录内容，支持按后缀过滤\n"
+        "   - 参数: repo_url, directory(可选), pattern(可选，如 .py)\n"
+        "5. github_read_file: 读取仓库中的指定文件内容（带行号，最多300行）\n"
+        "   - 参数: repo_url, file_path, start_line(可选), max_lines(可选)\n"
+        "6. github_search_code: 在仓库中全文搜索关键词\n"
+        "   - 参数: repo_url, keyword\n\n"
+        "分析 GitHub 仓库代码的标准流程：\n"
+        "  步骤1: 用 github_clone_repo 克隆仓库\n"
+        "  步骤2: 用 github_list_files 查看目录结构\n"
+        "  步骤3: 根据需要用 github_read_file 读取核心文件\n"
+        "  步骤4: 或用 github_search_code 搜索特定关键词\n"
+        "  步骤5: 综合结果给出分析报告\n\n"
         "当用户询问服务器相关信息时，请主动使用 SSH 工具获取实时数据。\n"
-        "当用户询问项目相关知识时，请先检索知识库。"
+        "当用户询问项目相关知识时，请先检索知识库。\n"
+        "当用户要求分析 GitHub 仓库或查看代码时，请按上述流程使用 GitHub 工具。"
     )
+
+    # 动态加载激活的 Skill 与 MCP 配置
+    try:
+        from common.skill_views import get_active_skills_prompt, get_active_mcp_tools_info
+        skill_prompt = get_active_skills_prompt()
+        mcp_info = get_active_mcp_tools_info()
+        if skill_prompt:
+            system_prompt += skill_prompt
+        if mcp_info:
+            system_prompt += "\n\n可用的 MCP 工具与服务器：\n" + mcp_info
+    except Exception as e:
+        logger.warning(f"加载 Skill/MCP 配置失败（非致命）: {e}")
 
     system_message = SystemMessage(content=system_prompt)
     return {

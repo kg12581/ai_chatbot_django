@@ -15,6 +15,19 @@ from common.views import (
     history,
     chat_stream,
     conversation_detail,
+    upload_file,
+)
+from common.skill_views import (
+    skills_dashboard,
+    skill_create,
+    skill_toggle,
+    skill_delete,
+    skill_update,
+    skill_detail,
+    mcp_server_create,
+    mcp_server_toggle,
+    mcp_server_delete,
+    mcp_tool_toggle,
 )
 
 urlpatterns = [
@@ -37,12 +50,26 @@ urlpatterns = [
 
     # API 路由
     path("chat/api/chat/stream/", chat_stream, name="chat_stream"),
+    path("chat/api/upload/", upload_file, name="upload_file"),
     path("chat/api/conversations/<int:conv_id>/", conversation_detail, name="conversation_detail"),
 
     # 抖音热搜
     path("api/", include("api.urls")),
+
+    # Skill 与 MCP 配置
+    path("skills/", skills_dashboard, name="skills_dashboard"),
+    path("skills/api/create/", skill_create, name="skill_create"),
+    path("skills/api/<int:skill_id>/toggle/", skill_toggle, name="skill_toggle"),
+    path("skills/api/<int:skill_id>/delete/", skill_delete, name="skill_delete"),
+    path("skills/api/<int:skill_id>/update/", skill_update, name="skill_update"),
+    path("skills/api/<int:skill_id>/", skill_detail, name="skill_detail"),
+    path("skills/api/mcp/server/create/", mcp_server_create, name="mcp_server_create"),
+    path("skills/api/mcp/server/<int:server_id>/toggle/", mcp_server_toggle, name="mcp_server_toggle"),
+    path("skills/api/mcp/server/<int:server_id>/delete/", mcp_server_delete, name="mcp_server_delete"),
+    path("skills/api/mcp/tool/<int:tool_id>/toggle/", mcp_tool_toggle, name="mcp_tool_toggle"),
 ]
 
-# 开发环境下提供静态文件服务
+# 开发环境下提供静态文件与上传文件服务
 if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
