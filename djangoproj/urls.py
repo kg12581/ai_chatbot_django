@@ -2,7 +2,7 @@
 URL configuration for djangoproj project.
 """
 
-from django.urls import path
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -29,6 +29,9 @@ urlpatterns = [
 
     # 旧版 API（兼容 index.html）
     path("api/chatbot/", chatbot_api, name="chatbot_api"),
+
+    # 抖音热搜
+    path("api/", include("api.urls")),
 ]
 
 # 开发环境下提供静态文件服务
