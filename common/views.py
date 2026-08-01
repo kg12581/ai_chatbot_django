@@ -157,27 +157,11 @@ def chat_stream(request):
 
 
 def _call_deepseek(history_messages):
-    """调用 DeepSeek 并逐块返回内容"""
-    from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
-    from chatbot import llm
+    """调用 Agent 工作流并逐块返回内容（支持 SSH 工具和 RAG 检索）。"""
+    from chatbot import stream_chat
 
-    SYSTEM_PROMPT = (
-        "你是一个智能AI助手，请默认使用中文回答用户的问题。\n"
-        "回答尽量简洁明了。"
-    )
-
-    # 构建 langchain 消息列表
-    lc_messages = [SystemMessage(content=SYSTEM_PROMPT)]
-    for msg in history_messages:
-        if msg["role"] == "user":
-            lc_messages.append(HumanMessage(content=msg["content"]))
-        elif msg["role"] == "assistant":
-            lc_messages.append(AIMessage(content=msg["content"]))
-
-    # 使用流式输出
-    for chunk in llm.stream(lc_messages):
-        if chunk.content:
-            yield chunk.content
+    for chunk in stream_chat(history_messages):
+        yield chunk
 
 
 @login_required

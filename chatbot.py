@@ -2,11 +2,12 @@
 
 提供两种对话模式：
   - llm: 纯大模型对话（直接调用 DeepSeek，无检索增强）
-  - graph: RAG 模式（LangGraph 工作流，先检索知识库再回答）
+  - graph: Agent 模式（LangGraph 工作流，可调用 RAG 检索和 SSH 远程命令工具）
 
 使用方式：
-  from chatbot import llm              # 纯 LLM 流式输出
-  from chatbot import graph            # RAG 模式
+  from chatbot import llm              # 纯 LLM
+  from chatbot import graph            # Agent 工作流
+  from chatbot import stream_chat      # Agent 流式输出（token 级别）
   from chatbot import add_documents    # 向知识库添加文档
 """
 
@@ -97,9 +98,59 @@ def retrieve_relevant_documents(query: str) -> list:
         return ["未检索到相关文档。"]
     return [_format_document(doc) for doc in results]
 
-# ==================== LangGraph RAG 工作流 ====================
 
-tools = [retrieve_relevant_documents]
+# ==================== SSH 远程命令工具 ====================
+
+# 危险命令黑名单（禁止执行）
+_DANGEROUS_PATTERNS = [
+    "rm -rf", "shutdown", "reboot", "halt", "init ", "mkfs",
+    "dd if=", "> /dev/sd", "chmod -R 777 /", "userdel", "groupdel",
+]
+
+
+def _is_dangerous(command: str) -> bool:
+    """检查命令是否包含危险操作。"""
+    cmd_lower = command.lower()
+    return any(p in cmd_lower for p in _DANGEROUS_PATTERNS)
+
+
+@tool
+def execute_ssh_command(command: str) -> str:
+    """在 Rocky Linux 远程服务器 (192.168.3.100) 上执行 SSH 命令。
+
+    可用于查询服务器状态、查看进程、检查日志、查看文件等。
+    禁止执行危险命令（如 rm -rf、shutdown、reboot 等）。
+
+    Args:
+        command: 要在远程服务器上执行的 shell 命令
+    Returns:
+        命令的输出结果（stdout），如果出错则返回错误信息
+    """
+    if _is_dangerous(command):
+        return f"安全限制：命令 '{command}' 包含危险操作，已被拒绝执行。"
+
+    from tools.ssh_utils import ssh_exec
+
+    try:
+        stdout, stderr, returncode = ssh_exec(command, timeout=30)
+        result = ""
+        if stdout:
+            # 截断过长的输出
+            if len(stdout) > 3000:
+                stdout = stdout[:3000] + "\n... (输出已截断)"
+            result += stdout
+        if stderr and returncode != 0:
+            result += f"\n[stderr]: {stderr[:500]}"
+        if not result:
+            result = f"(命令执行完成，退出码 {returncode}，无输出)"
+        return result
+    except Exception as e:
+        return f"SSH 执行失败: {e}"
+
+
+# ==================== LangGraph Agent 工作流 ====================
+
+tools = [retrieve_relevant_documents, execute_ssh_command]
 llm_with_tools = llm.bind_tools(tools)
 
 
@@ -108,21 +159,19 @@ class State(TypedDict):
 
 
 def _chatbot_node(state: State):
-    """LangGraph 聊天节点：根据检索到的上下文回答问题。"""
-    doc_count = get_document_count()
-    if doc_count == 0:
-        # 知识库为空时，提示 LLM 直接回答
-        system_prompt = (
-            "你是一个智能AI助手，请默认使用中文回答用户的问题。\n"
-            "回答尽量简洁明了。"
-        )
-    else:
-        system_prompt = (
-            "你是一个智能AI助手，请默认使用中文回答用户的问题。\n"
-            "请先使用工具检索相关文档，然后根据检索到的上下文回答问题。\n"
-            "如果检索结果不足以回答问题，可以结合自身知识回答，但要说明情况。\n"
-            "回答尽量简洁明了。"
-        )
+    """LangGraph 聊天节点：Agent 模式，可调用工具。"""
+    system_prompt = (
+        "你是一个智能AI助手，请默认使用中文回答用户的问题。\n"
+        "回答尽量简洁明了。\n\n"
+        "你可以使用以下工具来帮助回答问题：\n"
+        "1. retrieve_relevant_documents: 检索本地知识库中的相关文档\n"
+        "2. execute_ssh_command: 在 Rocky Linux 远程服务器上执行命令\n"
+        "   - 可用于查看服务器状态、进程、日志、文件等\n"
+        "   - 例如：hostname、uptime、ps aux、df -h、free -m、cat /etc/os-release\n"
+        "   - 禁止执行危险命令（rm -rf、shutdown 等）\n\n"
+        "当用户询问服务器相关信息时，请主动使用 SSH 工具获取实时数据。\n"
+        "当用户询问项目相关知识时，请先检索知识库。"
+    )
 
     system_message = SystemMessage(content=system_prompt)
     return {
@@ -142,13 +191,49 @@ graph_builder.add_edge(START, "chatbot")
 graph = graph_builder.compile()
 
 
+def stream_chat(history_messages):
+    """Agent 流式对话（token 级别输出）。
+
+    使用 LangGraph 的 stream_mode='messages' 实现 token 级别流式输出，
+    同时支持工具调用（RAG 检索 + SSH 命令）。
+
+    Args:
+        history_messages: 历史消息列表，格式 [{"role": "user", "content": "..."}, ...]
+
+    Yields:
+        str: AI 回复的文本片段
+    """
+    from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+
+    # 构建消息列表（不含 system prompt，graph 节点中会添加）
+    messages = []
+    for msg in history_messages:
+        if msg["role"] == "user":
+            messages.append(HumanMessage(content=msg["content"]))
+        elif msg["role"] == "assistant":
+            messages.append(AIMessage(content=msg["content"]))
+
+    # 使用 stream_mode='messages' 实现 token 级别流式
+    for chunk, metadata in graph.stream(
+        {"messages": messages},
+        stream_mode="messages",
+    ):
+        # 只输出 chatbot 节点产生的 AI 回复内容
+        if (
+            metadata.get("langgraph_node") == "chatbot"
+            and hasattr(chunk, "content")
+            and chunk.content
+        ):
+            yield chunk.content
+
+
 def get_chatbot_response(messages: list):
-    """使用 RAG 工作流同步调用（含知识库检索）。
+    """使用 Agent 工作流同步调用（含工具调用）。
 
     Args:
         messages: LangChain 消息列表
     Returns:
         graph.invoke 的完整结果
     """
-    logger.info(f"RAG 调用，输入消息数: {len(messages)}, 知识库文档数: {get_document_count()}")
+    logger.info(f"Agent 调用，输入消息数: {len(messages)}, 知识库文档数: {get_document_count()}")
     return graph.invoke({"messages": messages})
