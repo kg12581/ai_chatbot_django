@@ -21,6 +21,12 @@ DOUYIN_TASK_NAME = "抖音热搜爬虫"
 DOUYIN_FUNC_PATH = "api.views._scheduled_crawl"
 DOUYIN_DEFAULT_CRON = "0 * * * *"  # 每小时整点
 
+# 微博热搜任务默认配置
+WEIBO_TASK_ID = "weibo_hot_crawler"
+WEIBO_TASK_NAME = "微博热搜爬虫"
+WEIBO_FUNC_PATH = "api.views._scheduled_weibo_crawl"
+WEIBO_DEFAULT_CRON = "0 * * * *"  # 每小时整点
+
 
 # 标签样式映射
 LABEL_STYLE = {
@@ -50,6 +56,29 @@ def _scheduled_crawl():
             config.run_count += 1
             config.save(update_fields=["last_run_at", "last_run_result", "run_count"])
         logger.error(f"定时爬取失败: {e}")
+
+
+def _scheduled_weibo_crawl():
+    """定时任务执行的微博爬虫函数（记录执行结果到数据库）"""
+    from api.weibo_crawler import fetch_and_save as weibo_fetch_and_save
+
+    try:
+        result = weibo_fetch_and_save()
+        config = SchedulerConfig.objects.filter(task_id=WEIBO_TASK_ID).first()
+        if config:
+            config.last_run_at = timezone.now()
+            config.last_run_result = f"成功: {result['total']} 条"
+            config.run_count += 1
+            config.save(update_fields=["last_run_at", "last_run_result", "run_count"])
+        logger.info(f"微博定时爬取完成: {result['total']} 条")
+    except Exception as e:
+        config = SchedulerConfig.objects.filter(task_id=WEIBO_TASK_ID).first()
+        if config:
+            config.last_run_at = timezone.now()
+            config.last_run_result = f"失败: {str(e)[:200]}"
+            config.run_count += 1
+            config.save(update_fields=["last_run_at", "last_run_result", "run_count"])
+        logger.error(f"微博定时爬取失败: {e}")
 
 
 @login_required
@@ -91,26 +120,28 @@ def douyin_hot(request):
         # 数据库存储本地时间（USE_TZ=False）
         "latest_batch": latest.crawl_batch.strftime("%Y-%m-%d %H:%M:%S") if latest else None,
         "total_count": DouyinHotSearch.objects.count(),
-        "scheduler": _get_scheduler_context(),
+        "scheduler": _get_scheduler_context(
+            DOUYIN_TASK_ID, DOUYIN_TASK_NAME, DOUYIN_FUNC_PATH, DOUYIN_DEFAULT_CRON
+        ),
     }
     return render(request, "api/douyin_hot.html", context)
 
 
-def _get_scheduler_context():
+def _get_scheduler_context(task_id: str, task_name: str, func_path: str, default_cron: str):
     """获取调度器配置上下文"""
-    config = SchedulerConfig.objects.filter(task_id=DOUYIN_TASK_ID).first()
+    config = SchedulerConfig.objects.filter(task_id=task_id).first()
     if not config:
         config = SchedulerConfig.objects.create(
-            task_id=DOUYIN_TASK_ID,
-            task_name=DOUYIN_TASK_NAME,
-            func_path=DOUYIN_FUNC_PATH,
-            cron_expr=DOUYIN_DEFAULT_CRON,
+            task_id=task_id,
+            task_name=task_name,
+            func_path=func_path,
+            cron_expr=default_cron,
             enabled=False,
         )
 
     status = scheduler_manager.get_status()
     jobs = {j["id"]: j for j in status["jobs"]}
-    job_info = jobs.get(DOUYIN_TASK_ID, {})
+    job_info = jobs.get(task_id, {})
 
     from tools.scheduler import _cron_to_human
     return {
@@ -140,6 +171,74 @@ def douyin_crawl(request):
     return JsonResponse({"success": False, "error": "仅支持 POST 请求"}, status=405)
 
 
+# ===== 微博热搜视图 =====
+
+
+@login_required
+def weibo_hot(request):
+    """微博热搜榜页面"""
+    from api.models import WeiboHotSearch
+
+    # 获取最新一批数据
+    latest = WeiboHotSearch.objects.order_by("-crawl_batch", "rank").first()
+    if latest:
+        items = WeiboHotSearch.objects.filter(
+            crawl_batch=latest.crawl_batch
+        ).order_by("rank")
+    else:
+        items = []
+
+    # 爬取历史批次
+    batches = (
+        WeiboHotSearch.objects.values_list("crawl_batch", flat=True)
+        .distinct()
+        .order_by("-crawl_batch")[:10]
+    )
+
+    # 为每条数据附加标签样式
+    item_list = []
+    for item in items:
+        style = LABEL_STYLE.get(item.label, LABEL_STYLE["normal"])
+        item_list.append({
+            "rank": item.rank,
+            "title": item.title,
+            "hot_value": item.hot_value,
+            "label": item.label,
+            "label_text": style["text"],
+            "label_class": style["class"],
+            "url": item.url,
+            "cover_url": item.cover_url,
+        })
+
+    context = {
+        "items": item_list,
+        "batches": list(batches),
+        "latest_batch": latest.crawl_batch.strftime("%Y-%m-%d %H:%M:%S") if latest else None,
+        "total_count": WeiboHotSearch.objects.count(),
+        "scheduler": _get_scheduler_context(
+            WEIBO_TASK_ID, WEIBO_TASK_NAME, WEIBO_FUNC_PATH, WEIBO_DEFAULT_CRON
+        ),
+    }
+    return render(request, "api/weibo_hot.html", context)
+
+
+@login_required
+@csrf_exempt
+def weibo_crawl(request):
+    """触发爬取微博热搜 API"""
+    from api.weibo_crawler import fetch_and_save as weibo_fetch_and_save
+
+    if request.method == "POST":
+        result = weibo_fetch_and_save()
+        return JsonResponse({
+            "success": True,
+            "total": result["total"],
+            "batch_time": result["batch_time"],
+            "items": result["items"],
+        })
+    return JsonResponse({"success": False, "error": "仅支持 POST 请求"}, status=405)
+
+
 # ===== 定时调度管理 API =====
 
 
@@ -148,7 +247,10 @@ def douyin_crawl(request):
 def scheduler_status(request):
     """获取调度器状态"""
     if request.method == "GET":
-        return JsonResponse({"success": True, "data": _get_scheduler_context()})
+        data = _get_scheduler_context(
+            DOUYIN_TASK_ID, DOUYIN_TASK_NAME, DOUYIN_FUNC_PATH, DOUYIN_DEFAULT_CRON
+        )
+        return JsonResponse({"success": True, "data": data})
     return JsonResponse({"success": False, "error": "仅支持 GET 请求"}, status=405)
 
 
@@ -156,6 +258,48 @@ def scheduler_status(request):
 @csrf_exempt
 def scheduler_start(request):
     """启动定时任务"""
+    return _scheduler_start(
+        request, DOUYIN_TASK_ID, DOUYIN_TASK_NAME, DOUYIN_FUNC_PATH, DOUYIN_DEFAULT_CRON
+    )
+
+
+@login_required
+@csrf_exempt
+def scheduler_stop(request):
+    """停止定时任务"""
+    return _scheduler_stop(request, DOUYIN_TASK_ID)
+
+
+@login_required
+@csrf_exempt
+def weibo_scheduler_status(request):
+    """获取微博调度器状态"""
+    if request.method == "GET":
+        data = _get_scheduler_context(
+            WEIBO_TASK_ID, WEIBO_TASK_NAME, WEIBO_FUNC_PATH, WEIBO_DEFAULT_CRON
+        )
+        return JsonResponse({"success": True, "data": data})
+    return JsonResponse({"success": False, "error": "仅支持 GET 请求"}, status=405)
+
+
+@login_required
+@csrf_exempt
+def weibo_scheduler_start(request):
+    """启动微博定时任务"""
+    return _scheduler_start(
+        request, WEIBO_TASK_ID, WEIBO_TASK_NAME, WEIBO_FUNC_PATH, WEIBO_DEFAULT_CRON
+    )
+
+
+@login_required
+@csrf_exempt
+def weibo_scheduler_stop(request):
+    """停止微博定时任务"""
+    return _scheduler_stop(request, WEIBO_TASK_ID)
+
+
+def _scheduler_start(request, task_id: str, task_name: str, func_path: str, default_cron: str):
+    """启动定时任务（通用实现）"""
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "仅支持 POST 请求"}, status=405)
 
@@ -166,13 +310,13 @@ def scheduler_start(request):
 
     cron_expr = data.get("cron_expr", "").strip()
 
-    config = SchedulerConfig.objects.filter(task_id=DOUYIN_TASK_ID).first()
+    config = SchedulerConfig.objects.filter(task_id=task_id).first()
     if not config:
         config = SchedulerConfig.objects.create(
-            task_id=DOUYIN_TASK_ID,
-            task_name=DOUYIN_TASK_NAME,
-            func_path=DOUYIN_FUNC_PATH,
-            cron_expr=DOUYIN_DEFAULT_CRON,
+            task_id=task_id,
+            task_name=task_name,
+            func_path=func_path,
+            cron_expr=default_cron,
         )
 
     # 如果传了新的 cron 表达式，先验证
@@ -185,8 +329,8 @@ def scheduler_start(request):
     # 启动调度器并添加任务
     scheduler_manager.start()
     scheduler_manager.add_job(
-        job_id=DOUYIN_TASK_ID,
-        func=DOUYIN_FUNC_PATH,
+        job_id=task_id,
+        func=func_path,
         cron_expr=config.cron_expr,
     )
 
@@ -195,7 +339,7 @@ def scheduler_start(request):
 
     status = scheduler_manager.get_status()
     jobs = {j["id"]: j for j in status["jobs"]}
-    job_info = jobs.get(DOUYIN_TASK_ID, {})
+    job_info = jobs.get(task_id, {})
 
     return JsonResponse({
         "success": True,
@@ -204,16 +348,14 @@ def scheduler_start(request):
     })
 
 
-@login_required
-@csrf_exempt
-def scheduler_stop(request):
-    """停止定时任务"""
+def _scheduler_stop(request, task_id: str):
+    """停止定时任务（通用实现）"""
     if request.method != "POST":
         return JsonResponse({"success": False, "error": "仅支持 POST 请求"}, status=405)
 
-    scheduler_manager.remove_job(DOUYIN_TASK_ID)
+    scheduler_manager.remove_job(task_id)
 
-    config = SchedulerConfig.objects.filter(task_id=DOUYIN_TASK_ID).first()
+    config = SchedulerConfig.objects.filter(task_id=task_id).first()
     if config:
         config.enabled = False
         config.save()

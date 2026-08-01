@@ -1,8 +1,8 @@
 """
-抖音热搜爬虫模块
+微博热搜爬虫模块
 
-数据来源：抖音热搜榜 API
-如果 API 不可用，则使用模拟数据兜底。
+数据来源：微博热搜榜公开接口
+如果接口不可用，则使用模拟数据兜底。
 """
 
 import logging
@@ -13,8 +13,8 @@ from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
-# 抖音热搜 API 地址
-DOUYIN_HOT_URL = "https://www.iesdouyin.com/web/api/v2/hotsearch/billboard/word/"
+# 微博热搜 API 地址
+WEIBO_HOT_URL = "https://weibo.com/ajax/side/hotSearch"
 
 HEADERS = {
     "User-Agent": (
@@ -22,22 +22,24 @@ HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/125.0.0.0 Safari/537.36"
     ),
-    "Referer": "https://www.douyin.com/",
+    "Referer": "https://weibo.com/",
     "Accept": "application/json",
 }
 
-# 标签映射：抖音 API label 字段 → 可读标签
+# 微博接口 label_name（热/沸/新/爆/荐/商 等）→ 内部标签
 LABEL_MAP = {
-    1: "hot",    # 热
-    2: "new",    # 新
-    3: "boil",   # 沸
-    0: "normal",
+    "热": "hot",
+    "沸": "boil",
+    "爆": "boil",
+    "新": "new",
+    "荐": "hot",
+    "商": "hot",
 }
 
 
-def crawl_douyin_hot() -> List[Dict]:
+def crawl_weibo_hot() -> List[Dict]:
     """
-    爬取抖音热搜榜数据。
+    爬取微博热搜榜数据。
 
     返回格式：
         [
@@ -46,6 +48,7 @@ def crawl_douyin_hot() -> List[Dict]:
                 "title": "热搜话题",
                 "hot_value": 1234567,
                 "label": "hot",
+                "url": "https://s.weibo.com/weibo?q=...",
                 "cover_url": "https://...",
             },
             ...
@@ -54,41 +57,51 @@ def crawl_douyin_hot() -> List[Dict]:
     如果 API 请求失败，返回模拟数据（_mock=True 标记）。
     """
     try:
-        resp = requests.get(DOUYIN_HOT_URL, headers=HEADERS, timeout=10)
+        resp = requests.get(WEIBO_HOT_URL, headers=HEADERS, timeout=10)
         resp.raise_for_status()
         data = resp.json()
 
-        # 兼容两种返回结构：
-        #   新版接口：word_list 在顶层（2026 年起）
-        #   旧版接口：word_list 在 billboard_data 下
-        word_list = (
-            data.get("word_list")
-            or (data.get("billboard_data") or {}).get("word_list", [])
-        )
-        if not word_list:
-            logger.warning("抖音 API 返回空数据，使用模拟数据兜底")
+        realtime = (data.get("data") or {}).get("realtime", [])
+        if not realtime:
+            logger.warning("微博 API 返回空数据，使用模拟数据兜底")
             return _mock_data()
 
         result = []
-        for i, item in enumerate(word_list, 1):
-            label_code = item.get("label", 0)
-            cover = item.get("word_cover") or {}
-            cover_url = (cover.get("url_list") or [""])[0]
+        for item in realtime:
+            word = item.get("word", "")
+            if not word:
+                continue
+
+            # 热度值：优先 num，其次 raw_hot
+            hot_value = item.get("num", 0) or item.get("raw_hot", 0) or 0
+            label_name = item.get("label_name", "")
+            cover = item.get("icon", "") or item.get("pic", "") or ""
+
+            # 话题链接：优先接口给出的 scheme，否则构造微博搜索链接
+            url = item.get("word_scheme", "") or item.get("url", "")
+            if not url:
+                from urllib.parse import quote
+                url = f"https://s.weibo.com/weibo?q={quote('#' + word + '#')}"
 
             result.append({
-                # 新版接口无 position 字段，按列表顺序编号
-                "rank": item.get("position", i),
-                "title": item.get("word", ""),
-                "hot_value": item.get("hot_value", 0),
-                "label": LABEL_MAP.get(label_code, "normal"),
-                "cover_url": cover_url,
+                # 置顶话题可能没有 rank 字段，先占位，最后统一重排
+                "rank": item.get("rank", 0),
+                "title": word,
+                "hot_value": hot_value,
+                "label": LABEL_MAP.get(label_name, "normal"),
+                "url": url,
+                "cover_url": cover,
             })
 
-        logger.info(f"爬取抖音热搜成功，共 {len(result)} 条")
+        # 统一重排名次，保证 1..N 连续唯一
+        for i, item in enumerate(result, 1):
+            item["rank"] = i
+
+        logger.info(f"爬取微博热搜成功，共 {len(result)} 条")
         return result
 
     except (requests.RequestException, ValueError, KeyError) as e:
-        logger.warning(f"抖音 API 请求失败: {e}，使用模拟数据兜底")
+        logger.warning(f"微博 API 请求失败: {e}，使用模拟数据兜底")
         return _mock_data()
 
 
@@ -119,11 +132,13 @@ def _mock_data() -> List[Dict]:
 
     result = []
     for i, (title, hot, label) in enumerate(mock_items, 1):
+        from urllib.parse import quote
         result.append({
             "rank": i,
             "title": title,
             "hot_value": hot,
             "label": label,
+            "url": f"https://s.weibo.com/weibo?q={quote('#' + title + '#')}",
             "cover_url": "",
         })
     return result
@@ -135,30 +150,29 @@ def save_to_db(items: List[Dict]) -> int:
 
     返回保存的记录数。
     """
-    from api.models import DouyinHotSearch
+    from api.models import WeiboHotSearch
 
     if not items:
         return 0
 
     # 使用当前时间作为批次标识，同批次数据可整体替换
-    # USE_TZ=False 时 timezone.now() 返回本地 naive datetime，Django 直接存储
     batch_time = timezone.now()
 
-    # 批量创建
     objects = [
-        DouyinHotSearch(
+        WeiboHotSearch(
             rank=item["rank"],
             title=item["title"],
             hot_value=item["hot_value"],
             label=item["label"],
-            cover_url=item["cover_url"],
+            url=item.get("url", ""),
+            cover_url=item.get("cover_url", ""),
             crawl_batch=batch_time,
         )
         for item in items
     ]
 
-    created = DouyinHotSearch.objects.bulk_create(objects)
-    logger.info(f"成功保存 {len(created)} 条热搜数据到数据库")
+    created = WeiboHotSearch.objects.bulk_create(objects)
+    logger.info(f"成功保存 {len(created)} 条微博热搜数据到数据库")
     return len(created)
 
 
@@ -168,11 +182,10 @@ def fetch_and_save() -> dict:
 
     返回操作结果摘要。
     """
-    items = crawl_douyin_hot()
+    items = crawl_weibo_hot()
     count = save_to_db(items)
     return {
         "total": count,
-        # 返回给前端时转换为本地时区（Asia/Shanghai）
         "batch_time": timezone.now().strftime("%Y-%m-%d %H:%M:%S"),
         "items": items,
     }

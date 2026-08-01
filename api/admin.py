@@ -1,10 +1,20 @@
 from django.contrib import admin
 
-from .models import DouyinHotSearch, SchedulerConfig
+from .models import DouyinHotSearch, WeiboHotSearch, SchedulerConfig
 
 
 @admin.register(DouyinHotSearch)
 class DouyinHotSearchAdmin(admin.ModelAdmin):
+    list_display = ("rank", "title", "hot_value", "label", "crawl_batch", "created_at")
+    list_display_links = ("title",)
+    list_filter = ("label", "crawl_batch")
+    search_fields = ("title",)
+    date_hierarchy = "crawl_batch"
+    ordering = ("rank",)
+
+
+@admin.register(WeiboHotSearch)
+class WeiboHotSearchAdmin(admin.ModelAdmin):
     list_display = ("rank", "title", "hot_value", "label", "crawl_batch", "created_at")
     list_display_links = ("title",)
     list_filter = ("label", "crawl_batch")

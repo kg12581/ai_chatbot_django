@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}微博热搜榜 — Nocturne AI{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+
+    <!-- 页面标题 -->
+    <div class="mb-10 animate-fade-up">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-1 h-8 rounded-full bg-gradient-to-b from-nocturne-mint to-nocturne-amber"></div>
+            <span class="text-sm font-mono text-nocturne-text-muted uppercase tracking-widest">Weibo Hot Search</span>
+        </div>
+        <h1 class="font-display text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight mb-3">
+            微博热搜榜
+        </h1>
+        <p class="text-nocturne-text-muted text-base sm:text-lg">实时抓取微博热点话题，数据入库展示</p>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-8 p-5 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 backdrop-blur-sm animate-fade-up" style="animation-delay: 0.1s">
+        <div class="flex items-center gap-6">
+            <div>
+                <div class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-1">最新批次</div>
+                <div class="font-mono text-sm text-nocturne-mint">{{ latest_batch|default:"暂无数据" }}</div>
+            </div>
+            <div>
+                <div class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-1">数据总量</div>
+                <div class="font-mono text-sm text-nocturne-text-primary">{{ total_count }} 条</div>
+            </div>
+            <div>
+                <div class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-1">当前展示</div>
+                <div class="font-mono text-sm text-nocturne-text-primary">{{ items|length }} 条</div>
+            </div>
+        </div>
+        <button id="crawl-btn" class="group relative px-6 py-2.5 text-sm font-medium text-nocturne-bg bg-nocturne-mint rounded-full overflow-hidden transition-transform hover:scale-105">
+            <span class="relative z-10 flex items-center gap-2">
+                <i data-lucide="download-cloud" class="w-4 h-4"></i>
+                爬取最新数据
+            </span>
+            <div class="absolute inset-0 bg-gradient-to-r from-nocturne-mint to-nocturne-amber opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        </button>
+    </div>
+
+    <!-- 定时调度配置面板 -->
+    <div class="mb-8 p-6 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 backdrop-blur-sm animate-fade-up" style="animation-delay: 0.15s">
+        <div class="flex items-center justify-between mb-5">
+            <div class="flex items-center gap-3">
+                <div class="relative w-8 h-8 flex items-center justify-center">
+                    <div class="absolute inset-0 rounded-lg bg-nocturne-mint/10"></div>
+                    <i data-lucide="timer" class="relative w-4 h-4 text-nocturne-mint"></i>
+                </div>
+                <h2 class="font-display text-lg font-semibold">定时调度</h2>
+                <!-- 运行状态指示灯 -->
+                <span id="sched-indicator" class="flex items-center gap-1.5 px-2 py-0.5 text-xs rounded-full border
+                    {% if scheduler.enabled %}border-nocturne-mint/30 bg-nocturne-mint/10 text-nocturne-mint{% else %}border-nocturne-border bg-nocturne-elevated text-nocturne-text-dim{% endif %}">
+                    <span class="w-1.5 h-1.5 rounded-full {% if scheduler.enabled %}bg-nocturne-mint animate-pulse{% else %}bg-nocturne-text-dim{% endif %}"></span>
+                    {% if scheduler.enabled %}运行中{% else %}已停止{% endif %}
+                </span>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="sched-start" class="px-4 py-1.5 text-xs font-medium rounded-lg border transition-all
+                    {% if scheduler.enabled %}hidden{% else %}border-nocturne-mint/40 text-nocturne-mint hover:bg-nocturne-mint/10{% endif %}">
+                    启动调度
+                </button>
+                <button id="sched-stop" class="px-4 py-1.5 text-xs font-medium rounded-lg border transition-all
+                    {% if not scheduler.enabled %}hidden{% else %}border-red-500/40 text-red-400 hover:bg-red-500/10{% endif %}">
+                    停止调度
+                </button>
+            </div>
+        </div>
+
+        <!-- cron 配置 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+                <label class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-2 block">Cron 表达式</label>
+                <div class="flex gap-2">
+                    <input id="cron-input" type="text" value="{{ scheduler.cron_expr }}" placeholder="0 * * * *"
+                        class="flex-1 px-3 py-2 text-sm font-mono rounded-lg border border-nocturne-border bg-nocturne-bg/60 text-nocturne-text-primary focus:border-nocturne-mint/50 focus:outline-none transition-colors">
+                    <button id="cron-apply" class="px-3 py-2 text-xs font-medium rounded-lg border border-nocturne-border text-nocturne-text-muted hover:text-nocturne-mint hover:border-nocturne-mint/30 transition-all">
+                        应用
+                    </button>
+                </div>
+                <p id="cron-desc" class="mt-2 text-xs text-nocturne-text-muted">{{ scheduler.human_readable }}</p>
+            </div>
+            <div>
+                <label class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-2 block">快捷预设</label>
+                <div class="flex flex-wrap gap-2">
+                    <button class="cron-preset px-3 py-1.5 text-xs rounded-lg border border-nocturne-border bg-nocturne-elevated/50 text-nocturne-text-muted hover:text-nocturne-mint hover:border-nocturne-mint/30 transition-all" data-cron="*/30 * * * *">每30分钟</button>
+                    <button class="cron-preset px-3 py-1.5 text-xs rounded-lg border border-nocturne-border bg-nocturne-elevated/50 text-nocturne-text-muted hover:text-nocturne-mint hover:border-nocturne-mint/30 transition-all" data-cron="0 * * * *">每小时</button>
+                    <button class="cron-preset px-3 py-1.5 text-xs rounded-lg border border-nocturne-border bg-nocturne-elevated/50 text-nocturne-text-muted hover:text-nocturne-mint hover:border-nocturne-mint/30 transition-all" data-cron="0 */6 * * *">每6小时</button>
+                    <button class="cron-preset px-3 py-1.5 text-xs rounded-lg border border-nocturne-border bg-nocturne-elevated/50 text-nocturne-text-muted hover:text-nocturne-mint hover:border-nocturne-mint/30 transition-all" data-cron="0 0 * * *">每天凌晨</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 运行信息 -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-5 border-t border-nocturne-border/50">
+            <div>
+                <div class="text-xs text-nocturne-text-dim mb-1">下次执行</div>
+                <div id="sched-next" class="font-mono text-sm text-nocturne-mint">{{ scheduler.next_run|default:"—" }}</div>
+            </div>
+            <div>
+                <div class="text-xs text-nocturne-text-dim mb-1">上次执行</div>
+                <div class="font-mono text-sm text-nocturne-text-primary">{{ scheduler.last_run_at|default:"—" }}</div>
+            </div>
+            <div>
+                <div class="text-xs text-nocturne-text-dim mb-1">执行结果</div>
+                <div class="font-mono text-xs text-nocturne-text-muted truncate" title="{{ scheduler.last_run_result }}">{{ scheduler.last_run_result|default:"—" }}</div>
+            </div>
+            <div>
+                <div class="text-xs text-nocturne-text-dim mb-1">总执行次数</div>
+                <div class="font-mono text-sm text-nocturne-text-primary">{{ scheduler.run_count }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 热搜列表 -->
+    <div id="hot-list" class="space-y-2">
+        {% for item in items %}
+        <a href="{{ item.url|default:'#' }}" target="_blank" rel="noopener" class="group flex items-center gap-4 p-4 rounded-xl border border-nocturne-border bg-nocturne-surface/40 hover:bg-nocturne-elevated/60 hover:border-nocturne-mint/30 transition-all cursor-pointer animate-slide-in" style="animation-delay: {{ forloop.counter|add:'1' }}00ms">
+
+            <!-- 排名 -->
+            <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg
+                {% if item.rank <= 3 %}bg-gradient-to-br from-nocturne-amber/30 to-nocturne-mint/20{% else %}bg-nocturne-elevated{% endif %}">
+                <span class="font-display font-bold text-lg
+                    {% if item.rank == 1 %}text-red-400{% elif item.rank == 2 %}text-orange-400{% elif item.rank == 3 %}text-amber-400{% else %}text-nocturne-text-muted{% endif %}">
+                    {{ item.rank }}
+                </span>
+            </div>
+
+            <!-- 标题 + 标签 -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-nocturne-text-primary font-medium truncate group-hover:text-nocturne-mint transition-colors">
+                        {{ item.title }}
+                    </span>
+                    {% if item.label_text %}
+                    <span class="flex-shrink-0 px-1.5 py-0.5 text-xs font-bold rounded border {{ item.label_class }}">
+                        {{ item.label_text }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 热度 -->
+            <div class="flex-shrink-0 flex items-center gap-1.5 text-nocturne-text-muted">
+                <i data-lucide="flame" class="w-3.5 h-3.5 text-orange-400/70"></i>
+                <span class="font-mono text-sm">{{ item.hot_value|floatformat:0 }}</span>
+            </div>
+        </a>
+        {% empty %}
+        <div class="text-center py-20 text-nocturne-text-muted">
+            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-4 opacity-40"></i>
+            <p class="text-lg">暂无数据，请点击"爬取最新数据"</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 历史批次 -->
+    {% if batches|length > 1 %}
+    <div class="mt-12">
+        <h2 class="font-display text-xl font-semibold mb-4 text-nocturne-text-primary">历史爬取批次</h2>
+        <div class="flex flex-wrap gap-2">
+            {% for batch in batches %}
+            <span class="px-3 py-1.5 text-xs font-mono rounded-lg border border-nocturne-border bg-nocturne-surface/40 text-nocturne-text-muted
+                {% if forloop.first %}!border-nocturne-mint/40 !text-nocturne-mint{% endif %}">
+                {{ batch|date:"m/d H:i" }}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- 提示弹窗 -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden">
+    <div class="flex items-center gap-3 px-5 py-3 rounded-xl border border-nocturne-mint/30 bg-nocturne-surface backdrop-blur-xl shadow-2xl">
+        <div class="w-2 h-2 rounded-full bg-nocturne-mint animate-pulse"></div>
+        <span id="toast-text" class="text-sm text-nocturne-text-primary"></span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toast-text');
+
+    function showToast(msg) {
+        toastText.textContent = msg;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    async function api(url, options = {}) {
+        const resp = await fetch(url, {
+            ...options,
+            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        });
+        return resp.json();
+    }
+
+    // ===== 手动爬取 =====
+    const crawlBtn = document.getElementById('crawl-btn');
+    crawlBtn.addEventListener('click', async () => {
+        crawlBtn.disabled = true;
+        const originalHTML = crawlBtn.innerHTML;
+        crawlBtn.innerHTML = '<span class="relative z-10 flex items-center gap-2"><svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/></svg>爬取中...</span>';
+
+        try {
+            const data = await api('{% url "weibo_crawl" %}', { method: 'POST' });
+            if (data.success) {
+                showToast(`爬取成功！共 ${data.total} 条数据`);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showToast('爬取失败：' + (data.error || '未知错误'));
+            }
+        } catch (err) {
+            showToast('请求失败，请重试');
+        } finally {
+            crawlBtn.disabled = false;
+            crawlBtn.innerHTML = originalHTML;
+            if (window.lucide) lucide.createIcons();
+        }
+    });
+
+    // ===== 调度器：启动 =====
+    const startBtn = document.getElementById('sched-start');
+    const stopBtn = document.getElementById('sched-stop');
+    const cronInput = document.getElementById('cron-input');
+
+    startBtn.addEventListener('click', async () => {
+        startBtn.disabled = true;
+        const cronExpr = cronInput.value.trim();
+        try {
+            const data = await api('{% url "weibo_scheduler_start" %}', {
+                method: 'POST',
+                body: JSON.stringify({ cron_expr: cronExpr }),
+            });
+            if (data.success) {
+                showToast(data.message);
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                showToast('启动失败：' + (data.error || '未知错误'));
+            }
+        } catch (err) {
+            showToast('请求失败，请重试');
+        } finally {
+            startBtn.disabled = false;
+        }
+    });
+
+    // ===== 调度器：停止 =====
+    stopBtn.addEventListener('click', async () => {
+        stopBtn.disabled = true;
+        try {
+            const data = await api('{% url "weibo_scheduler_stop" %}', { method: 'POST' });
+            if (data.success) {
+                showToast(data.message);
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('停止失败：' + (data.error || '未知错误'));
+            }
+        } catch (err) {
+            showToast('请求失败，请重试');
+        } finally {
+            stopBtn.disabled = false;
+        }
+    });
+
+    // ===== 应用 Cron 表达式 =====
+    const applyBtn = document.getElementById('cron-apply');
+    applyBtn.addEventListener('click', async () => {
+        const cronExpr = cronInput.value.trim();
+        if (!cronExpr) { showToast('请输入 cron 表达式'); return; }
+        applyBtn.disabled = true;
+        try {
+            const data = await api('{% url "weibo_scheduler_start" %}', {
+                method: 'POST',
+                body: JSON.stringify({ cron_expr: cronExpr }),
+            });
+            if (data.success) {
+                showToast('Cron 表达式已应用');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showToast('应用失败：' + (data.error || '表达式无效'));
+            }
+        } catch (err) {
+            showToast('请求失败，请重试');
+        } finally {
+            applyBtn.disabled = false;
+        }
+    });
+
+    // ===== 快捷预设 =====
+    document.querySelectorAll('.cron-preset').forEach(btn => {
+        btn.addEventListener('click', () => {
+            cronInput.value = btn.dataset.cron;
+            cronInput.focus();
+        });
+    });
+
+    // ===== 轮询调度状态（运行中时每 30 秒刷新下次执行时间） =====
+    const indicator = document.getElementById('sched-indicator');
+    const isRunning = indicator.textContent.includes('运行中');
+    if (isRunning) {
+        setInterval(async () => {
+            try {
+                const data = await api('{% url "weibo_scheduler_status" %}');
+                if (data.success && data.data.next_run) {
+                    document.getElementById('sched-next').textContent = data.data.next_run;
+                }
+            } catch (e) { /* 静默 */ }
+        }, 30000);
+    }
+});
+</script>
+{% endblock %}
