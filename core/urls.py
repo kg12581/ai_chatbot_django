@@ -1,5 +1,5 @@
 """
-URL configuration for djangoproj project.
+URL configuration for core project.
 """
 
 from django.urls import path, include

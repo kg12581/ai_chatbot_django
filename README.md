@@ -79,7 +79,7 @@ ai_chatbot_django/
 │   ├── migrations/0001_initial.py  # Conversation / Message 模型
 │   ├── models.py                 # 会话、消息 ORM
 │   └── views.py                  # 聊天页面、流式 API、历史记录
-├── djangoproj/                   # Django 项目配置
+├── core/                         # Django 项目配置
 │   ├── settings.py               # 数据库 / 应用 / 静态文件 配置
 │   ├── urls.py                   # 全局 URL 路由
 │   ├── asgi.py / wsgi.py         # ASGI / WSGI 入口
@@ -145,7 +145,7 @@ DEEPSEEK_API_KEY=sk-xxxxxxxxxxxxxxxxxxxxxxxx
 
 ### 4. 配置数据库连接
 
-编辑 [djangoproj/settings.py](file:///Users/kgt/code/rocky/ai/ai_chatbot_django/djangoproj/settings.py#L74-L89) 中的 `DATABASES` 配置，确保指向你的 MySQL 实例：
+编辑 [core/settings.py](file:///Users/kgt/code/rocky/ai/ai_chatbot_django/core/settings.py#L74-L89) 中的 `DATABASES` 配置，确保指向你的 MySQL 实例：
 
 ```python
 DATABASES = {
@@ -320,7 +320,7 @@ python manage.py collectstatic --noinput
 
 ## 🔐 安全提示（部署前必改）
 
-1. **修改 `SECRET_KEY`**：`djangoproj/settings.py` 中请替换为强随机字符串
+1. **修改 `SECRET_KEY`**：`core/settings.py` 中请替换为强随机字符串
 2. **关闭 DEBUG**：生产环境 `DEBUG = False`
 3. **收紧 `ALLOWED_HOSTS`**：不要使用 `"*"`，填写实际域名/IP
 4. **数据库凭据**：使用环境变量注入，不要硬编码在 settings.py 中（可配合 `python-dotenv` + `os.getenv`）
