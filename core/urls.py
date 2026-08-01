@@ -15,7 +15,6 @@ from common.views import (
     history,
     chat_stream,
     conversation_detail,
-    chatbot_api,
 )
 
 urlpatterns = [
@@ -39,9 +38,6 @@ urlpatterns = [
     # API 路由
     path("chat/api/chat/stream/", chat_stream, name="chat_stream"),
     path("chat/api/conversations/<int:conv_id>/", conversation_detail, name="conversation_detail"),
-
-    # 旧版 API（兼容 index.html）
-    path("api/chatbot/", chatbot_api, name="chatbot_api"),
 
     # 抖音热搜
     path("api/", include("api.urls")),
