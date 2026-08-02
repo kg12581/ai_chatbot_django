@@ -22,11 +22,11 @@ svg { max-width:100%; height:auto; background:#0b1120; border-radius:12px; borde
 .note { color:#64748b; font-size:13px; }
 </style></head>
 <body><div class="wrap"><h1>🛡️ Nocturne AI · 项目测试报告</h1>
-<p class="note">生成时间：2026-08-02 20:39:34　|　pytest + pytest-django + pytest-cov + Playwright</p>
+<p class="note">生成时间：2026-08-02 21:26:24　|　pytest + pytest-django + pytest-cov + Playwright</p>
 <div class="cards">
-<div class="card"><div class="num">66/66</div><div class="lbl">测试全部通过</div></div>
-<div class="card"><div class="num">58+8</div><div class="lbl">后端 + 前端用例</div></div>
-<div class="card"><div class="num">25.4s</div><div class="lbl">总耗时</div></div>
+<div class="card"><div class="num">73/73</div><div class="lbl">测试全部通过</div></div>
+<div class="card"><div class="num">65+8</div><div class="lbl">后端 + 前端用例</div></div>
+<div class="card"><div class="num">26.9s</div><div class="lbl">总耗时</div></div>
 <div class="card"><div class="num">57%</div><div class="lbl">代码覆盖率</div></div>
 </div>
 <h2>一、测试架构流程图</h2>
@@ -38,7 +38,7 @@ svg { max-width:100%; height:auto; background:#0b1120; border-radius:12px; borde
 <text x="540.0" y="60.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">testcase/</text>
 <rect x="130" y="130" width="240" height="54" rx="10" fill="rgba(94,234,212,0.05)" stroke="#fbbf24" stroke-width="1.5"/>
 <text x="250.0" y="149.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">后端自动化测试</text>
-<text x="250.0" y="167.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">58 个用例</text>
+<text x="250.0" y="167.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">65 个用例</text>
 <rect x="620" y="130" width="240" height="54" rx="10" fill="rgba(94,234,212,0.05)" stroke="#60a5fa" stroke-width="1.5"/>
 <text x="740.0" y="149.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">前端 E2E 测试</text>
 <text x="740.0" y="167.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">8 个用例</text>
@@ -74,44 +74,52 @@ svg { max-width:100%; height:auto; background:#0b1120; border-radius:12px; borde
 <line x1="925" y1="300" x2="540" y2="360" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
 </svg>
 <h2>二、测试范围与用例明细</h2>
+<h3>其他（7）</h3>
+<table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_views</td><td>test_dashboard_page</td><td>0.101s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_dashboard_requires_login</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_track_anonymous_event</td><td>0.327s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_track_invalid_json</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_track_logged_user</td><td>0.080s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_track_payload_cleaned</td><td>0.003s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_track_requires_event_name</td><td>0.003s</td><td><span class="ok">通过</span></td></tr></tbody></table>
 <h3>API 应用（爬虫/模型/视图）（22）</h3>
 <table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>TestDouyinCrawler</td><td>test_empty_list_falls_back_to_mock</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>TestDouyinCrawler</td><td>test_new_format_top_level_word_list</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestDouyinCrawler</td><td>test_new_format_top_level_word_list</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>TestDouyinCrawler</td><td>test_old_format_billboard_data</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>TestDouyinCrawler</td><td>test_request_error_falls_back_to_mock</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>TestDouyinCrawler</td><td>test_save_to_db</td><td>0.237s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestDouyinCrawler</td><td>test_save_to_db</td><td>0.003s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>TestWeiboCrawler</td><td>test_empty_falls_back_to_mock</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>TestWeiboCrawler</td><td>test_parse_and_label_mapping</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>TestWeiboCrawler</td><td>test_save_to_db</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>TestWeiboCrawler</td><td>test_url_fallback</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_models</td><td>test_douyin_hot_search_model</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestWeiboCrawler</td><td>test_url_fallback</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_models</td><td>test_douyin_hot_search_model</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_models</td><td>test_scheduler_config_model</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_models</td><td>test_weibo_hot_search_model</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_views</td><td>test_crawl_get_method_rejected</td><td>0.080s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_douyin_crawl</td><td>0.079s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_douyin_hot_page</td><td>0.095s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_douyin_hot_requires_login</td><td>0.058s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_scheduler_start_invalid_cron</td><td>0.079s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_douyin_crawl</td><td>0.081s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_douyin_hot_page</td><td>0.084s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_douyin_hot_requires_login</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_scheduler_start_invalid_cron</td><td>0.080s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_views</td><td>test_scheduler_stop</td><td>0.080s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_views</td><td>test_weibo_crawl</td><td>0.079s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_weibo_hot_page</td><td>0.084s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_weibo_hot_requires_login</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_weibo_scheduler_status</td><td>0.080s</td><td><span class="ok">通过</span></td></tr></tbody></table>
+<tr><td>test_views</td><td>test_weibo_hot_page</td><td>0.083s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_weibo_hot_requires_login</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_weibo_scheduler_status</td><td>0.079s</td><td><span class="ok">通过</span></td></tr></tbody></table>
 <h3>通用应用（视图/权限隔离）（5）</h3>
-<table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_views</td><td>test_chat_detail_isolated_between_users</td><td>0.159s</td><td><span class="ok">通过</span></td></tr>
+<table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_views</td><td>test_chat_detail_isolated_between_users</td><td>0.160s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_views</td><td>test_chat_new_creates_conversation</td><td>0.080s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_history_search</td><td>0.082s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_home_page</td><td>0.080s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_history_search</td><td>0.083s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_home_page</td><td>0.082s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_views</td><td>test_home_requires_login</td><td>0.002s</td><td><span class="ok">通过</span></td></tr></tbody></table>
 <h3>前端 E2E（Playwright + Chrome）（8）</h3>
-<table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_e2e</td><td>test_chat_page_creates_conversation</td><td>2.852s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_e2e</td><td>test_douyin_hot_page</td><td>3.031s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_e2e</td><td>test_history_page</td><td>3.074s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_e2e</td><td>test_login_flow_and_nav</td><td>2.966s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_e2e</td><td>test_login_page_loads</td><td>3.107s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_e2e</td><td>test_mobile_viewport</td><td>2.537s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_e2e</td><td>test_scanner_page</td><td>2.966s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_e2e</td><td>test_weibo_hot_page</td><td>2.790s</td><td><span class="ok">通过</span></td></tr></tbody></table>
+<table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_e2e</td><td>test_chat_page_creates_conversation</td><td>3.000s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_douyin_hot_page</td><td>2.967s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_history_page</td><td>2.807s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_login_flow_and_nav</td><td>3.203s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_login_page_loads</td><td>3.523s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_mobile_viewport</td><td>3.092s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_scanner_page</td><td>3.140s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_weibo_hot_page</td><td>2.971s</td><td><span class="ok">通过</span></td></tr></tbody></table>
 <h3>扫描应用（引擎/Web 视图）（21）</h3>
 <table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_engine</td><td>test_deepseek_key_detected</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_engine</td><td>test_django_secret_key_detected</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
@@ -120,29 +128,29 @@ svg { max-width:100%; height:auto; background:#0b1120; border-radius:12px; borde
 <tr><td>test_engine</td><td>test_password_placeholder_allowed</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_engine</td><td>test_redact</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_engine</td><td>test_repository_scan</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_engine</td><td>test_repository_timeout</td><td>0.003s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_repository_timeout</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_engine</td><td>test_scan_target_forbidden_root</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_engine</td><td>test_scan_target_invalid_url</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_engine</td><td>test_scan_target_local_dir</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_engine</td><td>test_scan_target_missing_dir</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_engine</td><td>test_shannon_entropy</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_async_scan_flow</td><td>0.012s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_concurrent_scan_rejected</td><td>0.007s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_async_scan_flow</td><td>0.011s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_concurrent_scan_rejected</td><td>0.006s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_views</td><td>test_invalid_params_rejected</td><td>0.006s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_views</td><td>test_non_staff_cannot_scan_custom_target</td><td>0.006s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_views</td><td>test_scanner_page</td><td>0.021s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_views</td><td>test_scanner_page_requires_login</td><td>0.003s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_update_finding_status</td><td>0.008s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_views</td><td>test_worker_marks_failed_on_timeout</td><td>0.005s</td><td><span class="ok">通过</span></td></tr></tbody></table>
+<tr><td>test_views</td><td>test_update_finding_status</td><td>0.010s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_worker_marks_failed_on_timeout</td><td>0.004s</td><td><span class="ok">通过</span></td></tr></tbody></table>
 <h3>工具模块（调度/文件扫描）（10）</h3>
 <table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_file_scanner</td><td>test_find_file_names</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_file_scanner</td><td>test_max_depth</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_file_scanner</td><td>test_missing_dir</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_file_scanner</td><td>test_no_recursive</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_file_scanner</td><td>test_no_recursive</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_file_scanner</td><td>test_pattern_and_extension</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_file_scanner</td><td>test_scan_basic</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_file_scanner</td><td>test_truncation</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
-<tr><td>test_scheduler</td><td>test_human_readable</td><td>0.586s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_scheduler</td><td>test_human_readable</td><td>0.517s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_scheduler</td><td>test_invalid_cron</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
 <tr><td>test_scheduler</td><td>test_valid_cron</td><td>0.001s</td><td><span class="ok">通过</span></td></tr></tbody></table>
 

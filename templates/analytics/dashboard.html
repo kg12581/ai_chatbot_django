@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}数据统计 — Nocturne AI{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <div class="mb-10 animate-fade-up">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-1 h-8 rounded-full bg-gradient-to-b from-nocturne-mint to-nocturne-amber"></div>
+            <span class="text-sm font-mono text-nocturne-text-muted uppercase tracking-widest">Analytics</span>
+        </div>
+        <h1 class="font-display text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight mb-3">数据统计</h1>
+        <p class="text-nocturne-text-muted text-base sm:text-lg">基于自建埋点的访问与行为数据</p>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div class="p-5 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 text-center animate-fade-up" style="animation-delay:0.1s">
+            <div class="font-display text-3xl font-bold text-nocturne-mint">{{ total }}</div>
+            <div class="text-xs text-nocturne-text-muted mt-1">总事件数</div>
+        </div>
+        <div class="p-5 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 text-center animate-fade-up" style="animation-delay:0.15s">
+            <div class="font-display text-3xl font-bold text-amber-400">{{ today }}</div>
+            <div class="text-xs text-nocturne-text-muted mt-1">今日事件</div>
+        </div>
+        <div class="p-5 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 text-center animate-fade-up" style="animation-delay:0.2s">
+            <div class="font-display text-3xl font-bold text-blue-400">{{ pv }}</div>
+            <div class="text-xs text-nocturne-text-muted mt-1">页面访问 PV</div>
+        </div>
+        <div class="p-5 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 text-center animate-fade-up" style="animation-delay:0.25s">
+            <div class="font-display text-3xl font-bold text-red-400">{{ uv }}</div>
+            <div class="text-xs text-nocturne-text-muted mt-1">独立访客 UV</div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="rounded-2xl border border-nocturne-border bg-nocturne-surface/60 overflow-hidden animate-fade-up" style="animation-delay:0.3s">
+            <div class="px-5 py-4 border-b border-nocturne-border/50 font-display font-semibold">事件排行（近 7 天）</div>
+            <table class="w-full text-sm">
+                <tbody>
+                {% for e in event_ranking %}
+                    <tr class="border-b border-nocturne-border/30 hover:bg-nocturne-elevated/40">
+                        <td class="px-5 py-2.5 text-nocturne-text-primary">{{ e.event_name }}</td>
+                        <td class="px-5 py-2.5 text-right font-mono text-nocturne-mint">{{ e.count }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td class="px-5 py-10 text-center text-nocturne-text-muted">暂无数据</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="rounded-2xl border border-nocturne-border bg-nocturne-surface/60 overflow-hidden animate-fade-up" style="animation-delay:0.35s">
+            <div class="px-5 py-4 border-b border-nocturne-border/50 font-display font-semibold">热门页面</div>
+            <table class="w-full text-sm">
+                <tbody>
+                {% for p in top_pages %}
+                    <tr class="border-b border-nocturne-border/30 hover:bg-nocturne-elevated/40">
+                        <td class="px-5 py-2.5 font-mono text-xs text-nocturne-text-muted">{{ p.page_url }}</td>
+                        <td class="px-5 py-2.5 text-right font-mono text-nocturne-mint">{{ p.count }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td class="px-5 py-10 text-center text-nocturne-text-muted">暂无数据</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="rounded-2xl border border-nocturne-border bg-nocturne-surface/60 overflow-hidden animate-fade-up" style="animation-delay:0.4s">
+        <div class="px-5 py-4 border-b border-nocturne-border/50 font-display font-semibold">最近事件</div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs text-nocturne-text-dim uppercase tracking-wider border-b border-nocturne-border/50">
+                        <th class="px-5 py-3">时间</th>
+                        <th class="px-4 py-3">类型</th>
+                        <th class="px-4 py-3">事件</th>
+                        <th class="px-4 py-3">页面</th>
+                        <th class="px-4 py-3">用户</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for e in recent %}
+                    <tr class="border-b border-nocturne-border/30">
+                        <td class="px-5 py-2.5 font-mono text-xs text-nocturne-text-muted">{{ e.created_at|date:"m/d H:i:s" }}</td>
+                        <td class="px-4 py-2.5 text-nocturne-text-muted">{{ e.get_event_type_display }}</td>
+                        <td class="px-4 py-2.5 text-nocturne-text-primary">{{ e.event_name }}</td>
+                        <td class="px-4 py-2.5 font-mono text-xs text-nocturne-text-muted max-w-[200px] truncate">{{ e.page_url }}</td>
+                        <td class="px-4 py-2.5 text-nocturne-text-muted">{{ e.user.username|default:"匿名" }}</td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="5" class="px-5 py-10 text-center text-nocturne-text-muted">暂无数据</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <p class="mt-6 text-xs text-nocturne-text-dim">数据由前端 tracking.js 自动上报（页面 PV + data-track 点击事件），导出：<code class="text-nocturne-mint">python manage.py export_analytics</code></p>
+</div>
+{% endblock %}

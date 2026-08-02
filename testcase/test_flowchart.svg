@@ -6,7 +6,7 @@
 <text x="540.0" y="60.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">testcase/</text>
 <rect x="130" y="130" width="240" height="54" rx="10" fill="rgba(94,234,212,0.05)" stroke="#fbbf24" stroke-width="1.5"/>
 <text x="250.0" y="149.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">后端自动化测试</text>
-<text x="250.0" y="167.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">58 个用例</text>
+<text x="250.0" y="167.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">65 个用例</text>
 <rect x="620" y="130" width="240" height="54" rx="10" fill="rgba(94,234,212,0.05)" stroke="#60a5fa" stroke-width="1.5"/>
 <text x="740.0" y="149.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">前端 E2E 测试</text>
 <text x="740.0" y="167.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">8 个用例</text>

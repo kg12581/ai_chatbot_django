@@ -42,7 +42,7 @@
                 <div class="font-mono text-sm text-nocturne-text-primary">{{ latest.duration_ms|default:"—" }} ms</div>
             </div>
         </div>
-        <button id="scan-btn" class="group relative px-6 py-2.5 text-sm font-medium text-nocturne-bg bg-nocturne-mint rounded-full overflow-hidden transition-transform hover:scale-105">
+        <button id="scan-btn" data-track="scanner_run" data-track-payload='{"source":"page"}' class="group relative px-6 py-2.5 text-sm font-medium text-nocturne-bg bg-nocturne-mint rounded-full overflow-hidden transition-transform hover:scale-105">
             <span class="relative z-10 flex items-center gap-2">
                 <i data-lucide="scan-search" class="w-4 h-4"></i>
                 开始扫描
