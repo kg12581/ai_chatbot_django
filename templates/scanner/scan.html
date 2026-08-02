@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}硬编码扫描 — Nocturne AI{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+
+    <!-- 页面标题 -->
+    <div class="mb-10 animate-fade-up">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="w-1 h-8 rounded-full bg-gradient-to-b from-nocturne-mint to-nocturne-amber"></div>
+            <span class="text-sm font-mono text-nocturne-text-muted uppercase tracking-widest">Secret Scanner</span>
+        </div>
+        <h1 class="font-display text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight mb-3">
+            硬编码扫描
+        </h1>
+        <p class="text-nocturne-text-muted text-base sm:text-lg">检测代码中的硬编码密钥 / 密码 / Token（自研引擎，思路参考 Gitleaks）</p>
+    </div>
+
+    <!-- 状态栏 -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-8 p-5 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 backdrop-blur-sm animate-fade-up" style="animation-delay: 0.1s">
+        <div class="flex items-center gap-6">
+            <div>
+                <div class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-1">最近扫描</div>
+                <div class="font-mono text-sm text-nocturne-mint">{{ latest.created_at|date:"Y-m-d H:i:s"|default:"尚未扫描" }}</div>
+            </div>
+            <div>
+                <div class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-1">扫描目标</div>
+                <div class="font-mono text-sm text-nocturne-text-primary truncate max-w-[180px]" title="{{ latest.target_path }}">{{ latest.target_path|default:"当前项目" }}</div>
+            </div>
+            <div>
+                <div class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-1">扫描文件</div>
+                <div class="font-mono text-sm text-nocturne-text-primary">{{ latest.files_scanned|default:"—" }}</div>
+            </div>
+            <div>
+                <div class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-1">发现密钥</div>
+                <div class="font-mono text-sm {% if latest.findings_count %}text-red-400{% else %}text-nocturne-mint{% endif %}">{{ latest.findings_count|default:"—" }} 处</div>
+            </div>
+            <div>
+                <div class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-1">耗时</div>
+                <div class="font-mono text-sm text-nocturne-text-primary">{{ latest.duration_ms|default:"—" }} ms</div>
+            </div>
+        </div>
+        <button id="scan-btn" class="group relative px-6 py-2.5 text-sm font-medium text-nocturne-bg bg-nocturne-mint rounded-full overflow-hidden transition-transform hover:scale-105">
+            <span class="relative z-10 flex items-center gap-2">
+                <i data-lucide="scan-search" class="w-4 h-4"></i>
+                开始扫描
+            </span>
+            <div class="absolute inset-0 bg-gradient-to-r from-nocturne-mint to-nocturne-amber opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        </button>
+    </div>
+
+    {% if latest and latest.status == "failed" %}
+    <div class="mb-6 p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm animate-fade-up">
+        <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i>
+        最近一次扫描失败：{{ latest.error_message|default:"未知错误" }}（第 {{ latest.duration_ms }} ms）
+    </div>
+    {% endif %}
+
+    <!-- 扫描目标输入 -->
+    <div class="mb-8 p-5 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 backdrop-blur-sm animate-fade-up" style="animation-delay: 0.12s">
+        <label for="scan-target" class="text-xs text-nocturne-text-dim uppercase tracking-wider mb-2 block">扫描其他代码仓（可选）</label>
+        <div class="flex flex-col sm:flex-row gap-3">
+            <input id="scan-target" type="text"
+                placeholder="留空 = 当前项目；或填本地绝对路径，或 Git 仓库 URL（https://github.com/user/repo.git）"
+                class="flex-1 px-3 py-2 text-sm font-mono rounded-lg border border-nocturne-border bg-nocturne-bg/60 text-nocturne-text-primary focus:border-nocturne-mint/50 focus:outline-none transition-colors">
+            <button id="scan-target-clear" class="px-4 py-2 text-xs font-medium rounded-lg border border-nocturne-border text-nocturne-text-muted hover:text-red-400 hover:border-red-500/30 transition-all">
+                清空
+            </button>
+        </div>
+        <p class="mt-2 text-xs text-nocturne-text-muted">Git 仓库会临时克隆、扫描完成后自动清理；扫描其他代码仓仅管理员可用。</p>
+    </div>
+
+    <!-- 状态统计 -->
+    <div class="grid grid-cols-3 gap-4 mb-8">
+        <div class="p-4 rounded-2xl border border-red-500/20 bg-red-500/5 text-center animate-fade-up" style="animation-delay: 0.12s">
+            <div class="font-display text-2xl font-bold text-red-400">{{ stats.open }}</div>
+            <div class="text-xs text-nocturne-text-muted mt-1">待处理</div>
+        </div>
+        <div class="p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 text-center animate-fade-up" style="animation-delay: 0.16s">
+            <div class="font-display text-2xl font-bold text-amber-400">{{ stats.false_positive }}</div>
+            <div class="text-xs text-nocturne-text-muted mt-1">误报</div>
+        </div>
+        <div class="p-4 rounded-2xl border border-nocturne-mint/20 bg-nocturne-mint/5 text-center animate-fade-up" style="animation-delay: 0.2s">
+            <div class="font-display text-2xl font-bold text-nocturne-mint">{{ stats.fixed }}</div>
+            <div class="text-xs text-nocturne-text-muted mt-1">已修复</div>
+        </div>
+    </div>
+
+    <!-- 扫描结果列表 -->
+    <div class="mb-8 rounded-2xl border border-nocturne-border bg-nocturne-surface/60 backdrop-blur-sm animate-fade-up" style="animation-delay: 0.24s">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-nocturne-border/50">
+            <h2 class="font-display text-lg font-semibold">扫描结果（{{ findings|length }}）</h2>
+            <span class="text-xs text-nocturne-text-dim">密钥已脱敏显示</span>
+        </div>
+
+        {% if findings %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs text-nocturne-text-dim uppercase tracking-wider border-b border-nocturne-border/50">
+                        <th class="px-6 py-3">级别</th>
+                        <th class="px-4 py-3">规则</th>
+                        <th class="px-4 py-3">文件</th>
+                        <th class="px-4 py-3">行</th>
+                        <th class="px-4 py-3">脱敏密钥</th>
+                        <th class="px-4 py-3">熵</th>
+                        <th class="px-4 py-3">状态</th>
+                        <th class="px-4 py-3">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in findings %}
+                    <tr class="border-b border-nocturne-border/30 hover:bg-nocturne-elevated/40 transition-colors" data-id="{{ f.pk }}">
+                        <td class="px-6 py-3">
+                            <span class="px-2 py-0.5 text-xs font-bold rounded border
+                                {% if f.severity == 'critical' %}border-red-500/40 bg-red-500/15 text-red-400
+                                {% elif f.severity == 'high' %}border-orange-500/40 bg-orange-500/15 text-orange-400
+                                {% elif f.severity == 'medium' %}border-amber-500/40 bg-amber-500/15 text-amber-400
+                                {% else %}border-nocturne-border text-nocturne-text-muted{% endif %}">
+                                {{ f.get_severity_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-nocturne-text-primary">{{ f.rule_name }}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-nocturne-text-muted max-w-[240px] truncate" title="{{ f.file_path }}:{{ f.line_number }}">{{ f.file_path }}:{{ f.line_number }}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-nocturne-text-muted">{{ f.line_number }}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-nocturne-mint">{{ f.secret_preview }}</td>
+                        <td class="px-4 py-3 font-mono text-xs text-nocturne-text-muted">{{ f.entropy }}</td>
+                        <td class="px-4 py-3">
+                            <span class="finding-status px-2 py-0.5 text-xs rounded-full border
+                                {% if f.status == 'open' %}border-red-500/30 bg-red-500/10 text-red-400
+                                {% elif f.status == 'false_positive' %}border-amber-500/30 bg-amber-500/10 text-amber-400
+                                {% else %}border-nocturne-mint/30 bg-nocturne-mint/10 text-nocturne-mint{% endif %}">
+                                {{ f.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex gap-1.5">
+                                <button class="mark-btn text-xs px-2 py-1 rounded-lg border border-nocturne-border text-nocturne-text-muted hover:text-amber-400 hover:border-amber-500/30 transition-all" data-status="false_positive">误报</button>
+                                <button class="mark-btn text-xs px-2 py-1 rounded-lg border border-nocturne-border text-nocturne-text-muted hover:text-nocturne-mint hover:border-nocturne-mint/30 transition-all" data-status="fixed">已修复</button>
+                                <button class="mark-btn text-xs px-2 py-1 rounded-lg border border-nocturne-border text-nocturne-text-muted hover:text-red-400 hover:border-red-500/30 transition-all" data-status="open">待处理</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-20 text-nocturne-text-muted">
+            <i data-lucide="shield-check" class="w-12 h-12 mx-auto mb-4 opacity-40"></i>
+            <p class="text-lg">暂无扫描结果，点击"开始扫描"</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 历史扫描 -->
+    {% if recent_runs %}
+    <div>
+        <h2 class="font-display text-xl font-semibold mb-4 text-nocturne-text-primary">历史扫描</h2>
+        <div class="flex flex-wrap gap-2">
+            {% for run in recent_runs %}
+            <span class="px-3 py-1.5 text-xs font-mono rounded-lg border border-nocturne-border bg-nocturne-surface/40 text-nocturne-text-muted
+                {% if forloop.first %}!border-nocturne-mint/40 !text-nocturne-mint{% endif %}">
+                {{ run.created_at|date:"m/d H:i:s" }} · {{ run.findings_count }}处
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- 提示弹窗 -->
+<div id="toast" class="fixed bottom-6 right-6 z-50 hidden">
+    <div class="flex items-center gap-3 px-5 py-3 rounded-xl border border-nocturne-mint/30 bg-nocturne-surface backdrop-blur-xl shadow-2xl">
+        <div class="w-2 h-2 rounded-full bg-nocturne-mint animate-pulse"></div>
+        <span id="toast-text" class="text-sm text-nocturne-text-primary"></span>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toast-text');
+
+    function showToast(msg, isError = false) {
+        toastText.textContent = msg;
+        toast.classList.remove('hidden');
+        toast.querySelector('div').className = 'w-2 h-2 rounded-full animate-pulse ' + (isError ? 'bg-red-400' : 'bg-nocturne-mint');
+        setTimeout(() => toast.classList.add('hidden'), 3000);
+    }
+
+    async function api(url, options = {}) {
+        const resp = await fetch(url, {
+            ...options,
+            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        });
+        return resp.json();
+    }
+
+    // ===== 开始扫描 =====
+    const scanBtn = document.getElementById('scan-btn');
+    scanBtn.addEventListener('click', async () => {
+        scanBtn.disabled = true;
+        const target = document.getElementById('scan-target').value.trim();
+        const originalHTML = scanBtn.innerHTML;
+        scanBtn.innerHTML = '<span class="relative z-10 flex items-center gap-2"><svg class="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.4 0 0 5.4 0 12h4z"/></svg>扫描中...</span>';
+        try {
+            const data = await api('{% url "scanner_run" %}', {
+                method: 'POST',
+                body: JSON.stringify({ target }),
+            });
+            if (data.success) {
+                showToast(data.message || '扫描已开始');
+                if (data.async) {
+                    await pollRun(data.run_id);
+                } else {
+                    location.reload();
+                }
+            } else {
+                showToast('扫描失败：' + (data.error || '未知错误'), true);
+                scanBtn.disabled = false;
+                scanBtn.innerHTML = originalHTML;
+                if (window.lucide) lucide.createIcons();
+            }
+        } catch (err) {
+            showToast('请求失败，请重试', true);
+            scanBtn.disabled = false;
+            scanBtn.innerHTML = originalHTML;
+            if (window.lucide) lucide.createIcons();
+        }
+    });
+
+    // ===== 轮询扫描进度 =====
+    async function pollRun(runId) {
+        for (let i = 0; i < 300; i++) {   // 最多轮询 10 分钟
+            await new Promise(r => setTimeout(r, 2000));
+            try {
+                const s = await api(`{% url "scanner_status" 0 %}`.replace('0', runId));
+                if (!s.success) { showToast('查询状态失败', true); break; }
+                if (s.run.status === 'finished') {
+                    showToast(`扫描完成：${s.run.files_scanned} 个文件，发现 ${s.run.findings_count} 处密钥`);
+                    location.reload();
+                    return;
+                }
+                if (s.run.status === 'failed') {
+                    showToast('扫描失败：' + (s.run.error_message || '未知错误'), true);
+                    location.reload();
+                    return;
+                }
+            } catch (e) {
+                showToast('查询状态失败，请刷新页面', true);
+                break;
+            }
+        }
+        showToast('等待超时，请稍后刷新页面查看结果', true);
+        location.reload();
+    }
+
+    // ===== 清空目标 =====
+    document.getElementById('scan-target-clear').addEventListener('click', () => {
+        document.getElementById('scan-target').value = '';
+        document.getElementById('scan-target').focus();
+    });
+
+    // ===== 标记状态 =====
+    document.querySelectorAll('.mark-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const row = btn.closest('tr');
+            const pk = row.dataset.id;
+            const status = btn.dataset.status;
+            try {
+                const data = await api(`{% url "scanner_update_status" pk=0 %}`.replace('0', pk), {
+                    method: 'POST',
+                    body: JSON.stringify({ status }),
+                });
+                if (data.success) {
+                    showToast('状态已更新');
+                    setTimeout(() => location.reload(), 800);
+                } else {
+                    showToast('更新失败：' + (data.error || '未知错误'), true);
+                }
+            } catch (err) {
+                showToast('请求失败，请重试', true);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

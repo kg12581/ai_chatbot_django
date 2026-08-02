@@ -56,6 +56,9 @@ urlpatterns = [
     # 抖音热搜
     path("api/", include("api.urls")),
 
+    # 硬编码密钥扫描
+    path("scanner/", include("scanner.urls")),
+
     # Skill 与 MCP 配置
     path("skills/", skills_dashboard, name="skills_dashboard"),
     path("skills/api/create/", skill_create, name="skill_create"),

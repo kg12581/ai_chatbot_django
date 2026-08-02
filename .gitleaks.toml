@@ -1,0 +1,70 @@
+# Gitleaks 硬编码密钥扫描配置
+# 在默认规则基础上，补充本项目特定的密钥规则：
+#   - Django SECRET_KEY（django-insecure- 前缀）
+#   - DeepSeek API Key（sk- 前缀）
+#   - Django settings 中硬编码的数据库密码
+#
+# 使用方式：
+#   gitleaks detect --source . --config .gitleaks.toml --redact
+
+title = "ai_chatbot_django 硬编码密钥扫描配置"
+
+[extend]
+useDefault = true
+
+# 白名单：只放行“预期包含密钥的本地配置”和“不会提交的产物/文档占位符”。
+# 注意：不要把真实密钥加进白名单。
+[allowlist]
+paths = [
+    '''(^|/)\.env$''',            # 本地环境变量文件（已被 .gitignore 忽略）
+    '''__pycache__/''',          # Python 编译缓存
+    '''\.pyc$''',
+    '''^\.git/''',
+]
+regexes = [
+    '''your_password''',         # README 中的数据库配置示例占位符
+]
+
+[[rules]]
+id = "django-secret-key"
+description = "Django SECRET_KEY（django-insecure- 前缀）"
+regex = '''django-insecure-[A-Za-z0-9!@#$%^&*()_\-+=<>,.?/:;{}|\\~]+'''
+secretGroup = 0
+
+[[rules]]
+id = "deepseek-api-key"
+description = "DeepSeek API Key（sk- 前缀）"
+regex = '''\bsk-[A-Za-z0-9]{20,}\b'''
+secretGroup = 0
+entropy = 3.5
+
+[[rules]]
+id = "mysql-password-setting"
+description = "Django settings 中硬编码的数据库密码"
+regex = '''(?i)["']PASSWORD["']\s*:\s*["'][^"']{8,}["']'''
+secretGroup = 0
+entropy = 2.5
+
+[[rules]]
+id = "mysql-connection-string"
+description = "MySQL 连接字符串（含密码）"
+regex = '''mysql://[A-Za-z0-9_.\-]+:[^@\s/]+@[A-Za-z0-9_.\-]+'''
+secretGroup = 0
+
+[[rules]]
+id = "github-classic-token"
+description = "GitHub Personal Access Token（ghp_ 前缀）"
+regex = '''\bgh[pousr]_[A-Za-z0-9]{36,}\b'''
+secretGroup = 0
+
+[[rules]]
+id = "github-fine-grained-token"
+description = "GitHub Fine-grained PAT（github_pat_ 前缀）"
+regex = '''\bgithub_pat_[A-Za-z0-9_]{20,}\b'''
+secretGroup = 0
+
+[[rules]]
+id = "private-key-block"
+description = "私钥块（RSA/EC/OPENSSH 等）"
+regex = '''-----BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----'''
+secretGroup = 0
