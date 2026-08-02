@@ -23,7 +23,7 @@ class Command(BaseCommand):
         try:
             result = scan_target(
                 target, str(settings.BASE_DIR),
-                max_seconds=120, max_files=20000,
+                max_seconds=300, max_files=50000,
             )
         except ScanTimeoutError as e:
             self.stderr.write(self.style.ERROR(f"扫描中止：{e}"))

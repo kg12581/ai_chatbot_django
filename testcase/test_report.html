@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nocturne AI · 项目测试报告</title>
+<style>
+body { background:#0b1120; color:#e2e8f0; font-family:"PingFang SC","Microsoft YaHei",sans-serif; margin:0; padding:32px 16px; }
+.wrap { max-width:1060px; margin:0 auto; }
+h1 { color:#5eead4; font-size:28px; }
+h2 { color:#fbbf24; font-size:20px; border-bottom:1px solid #1e293b; padding-bottom:8px; margin-top:36px; }
+h3 { color:#94a3b8; font-size:16px; margin-top:26px; }
+.cards { display:flex; gap:14px; flex-wrap:wrap; margin:20px 0; }
+.card { flex:1; min-width:180px; background:#111a2e; border:1px solid #1e293b; border-radius:12px; padding:18px; }
+.card .num { font-size:30px; font-weight:700; color:#34d399; }
+.card .lbl { color:#94a3b8; font-size:13px; margin-top:4px; }
+table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; }
+th { background:#111a2e; color:#94a3b8; text-align:left; padding:8px 10px; border-bottom:1px solid #1e293b; }
+td { padding:7px 10px; border-bottom:1px solid #16213a; }
+.ok { color:#34d399; }
+code { background:#111a2e; padding:2px 6px; border-radius:5px; color:#5eead4; }
+pre { background:#111a2e; padding:14px; border-radius:10px; overflow:auto; }
+svg { max-width:100%; height:auto; background:#0b1120; border-radius:12px; border:1px solid #1e293b; }
+.note { color:#64748b; font-size:13px; }
+</style></head>
+<body><div class="wrap"><h1>🛡️ Nocturne AI · 项目测试报告</h1>
+<p class="note">生成时间：2026-08-02 20:39:34　|　pytest + pytest-django + pytest-cov + Playwright</p>
+<div class="cards">
+<div class="card"><div class="num">66/66</div><div class="lbl">测试全部通过</div></div>
+<div class="card"><div class="num">58+8</div><div class="lbl">后端 + 前端用例</div></div>
+<div class="card"><div class="num">25.4s</div><div class="lbl">总耗时</div></div>
+<div class="card"><div class="num">57%</div><div class="lbl">代码覆盖率</div></div>
+</div>
+<h2>一、测试架构流程图</h2>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 470" width="1080" height="470" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#64748b"/></marker></defs>
+<rect width="1080" height="470" fill="#0b1120"/>
+<rect x="420" y="24" width="240" height="52" rx="10" fill="rgba(94,234,212,0.05)" stroke="#5eead4" stroke-width="1.5"/>
+<text x="540.0" y="42.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">pytest 测试入口</text>
+<text x="540.0" y="60.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">testcase/</text>
+<rect x="130" y="130" width="240" height="54" rx="10" fill="rgba(94,234,212,0.05)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="250.0" y="149.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">后端自动化测试</text>
+<text x="250.0" y="167.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">58 个用例</text>
+<rect x="620" y="130" width="240" height="54" rx="10" fill="rgba(94,234,212,0.05)" stroke="#60a5fa" stroke-width="1.5"/>
+<text x="740.0" y="149.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">前端 E2E 测试</text>
+<text x="740.0" y="167.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">8 个用例</text>
+<line x1="520" y1="76" x2="300" y2="130" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="540" y1="76" x2="720" y2="130" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="30" y="240" width="190" height="60" rx="10" fill="rgba(94,234,212,0.05)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="125.0" y="262.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">API 应用</text>
+<text x="125.0" y="280.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">22 用例</text>
+<line x1="260" y1="184" x2="125" y2="240" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="230" y="240" width="190" height="60" rx="10" fill="rgba(94,234,212,0.05)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="325.0" y="262.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">扫描应用</text>
+<text x="325.0" y="280.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">21 用例</text>
+<line x1="260" y1="184" x2="325" y2="240" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="430" y="240" width="190" height="60" rx="10" fill="rgba(94,234,212,0.05)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="525.0" y="262.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">工具模块</text>
+<text x="525.0" y="280.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">10 用例</text>
+<line x1="260" y1="184" x2="525" y2="240" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="630" y="240" width="190" height="60" rx="10" fill="rgba(94,234,212,0.05)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="725.0" y="262.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">通用应用</text>
+<text x="725.0" y="280.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">5 用例</text>
+<line x1="260" y1="184" x2="725" y2="240" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="830" y="240" width="190" height="60" rx="10" fill="rgba(94,234,212,0.05)" stroke="#60a5fa" stroke-width="1.5"/>
+<text x="925.0" y="262.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">浏览器页面</text>
+<text x="925.0" y="280.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">8 用例</text>
+<line x1="680" y1="184" x2="740" y2="240" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="280" y="360" width="520" height="52" rx="10" fill="rgba(94,234,212,0.05)" stroke="#34d399" stroke-width="1.5"/>
+<text x="540.0" y="378.0" fill="#e2e8f0" font-size="14" font-weight="600" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">测试结果</text>
+<text x="540.0" y="396.0" fill="#94a3b8" font-size="11" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif">66 个测试全部通过 · 覆盖率 57%</text>
+<line x1="125" y1="300" x2="540" y2="360" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="325" y1="300" x2="540" y2="360" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="525" y1="300" x2="540" y2="360" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="725" y1="300" x2="540" y2="360" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+<line x1="925" y1="300" x2="540" y2="360" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrow)"/>
+</svg>
+<h2>二、测试范围与用例明细</h2>
+<h3>API 应用（爬虫/模型/视图）（22）</h3>
+<table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>TestDouyinCrawler</td><td>test_empty_list_falls_back_to_mock</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestDouyinCrawler</td><td>test_new_format_top_level_word_list</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestDouyinCrawler</td><td>test_old_format_billboard_data</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestDouyinCrawler</td><td>test_request_error_falls_back_to_mock</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestDouyinCrawler</td><td>test_save_to_db</td><td>0.237s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestWeiboCrawler</td><td>test_empty_falls_back_to_mock</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestWeiboCrawler</td><td>test_parse_and_label_mapping</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestWeiboCrawler</td><td>test_save_to_db</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>TestWeiboCrawler</td><td>test_url_fallback</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_models</td><td>test_douyin_hot_search_model</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_models</td><td>test_scheduler_config_model</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_models</td><td>test_weibo_hot_search_model</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_crawl_get_method_rejected</td><td>0.080s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_douyin_crawl</td><td>0.079s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_douyin_hot_page</td><td>0.095s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_douyin_hot_requires_login</td><td>0.058s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_scheduler_start_invalid_cron</td><td>0.079s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_scheduler_stop</td><td>0.080s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_weibo_crawl</td><td>0.079s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_weibo_hot_page</td><td>0.084s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_weibo_hot_requires_login</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_weibo_scheduler_status</td><td>0.080s</td><td><span class="ok">通过</span></td></tr></tbody></table>
+<h3>通用应用（视图/权限隔离）（5）</h3>
+<table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_views</td><td>test_chat_detail_isolated_between_users</td><td>0.159s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_chat_new_creates_conversation</td><td>0.080s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_history_search</td><td>0.082s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_home_page</td><td>0.080s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_home_requires_login</td><td>0.002s</td><td><span class="ok">通过</span></td></tr></tbody></table>
+<h3>前端 E2E（Playwright + Chrome）（8）</h3>
+<table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_e2e</td><td>test_chat_page_creates_conversation</td><td>2.852s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_douyin_hot_page</td><td>3.031s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_history_page</td><td>3.074s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_login_flow_and_nav</td><td>2.966s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_login_page_loads</td><td>3.107s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_mobile_viewport</td><td>2.537s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_scanner_page</td><td>2.966s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_e2e</td><td>test_weibo_hot_page</td><td>2.790s</td><td><span class="ok">通过</span></td></tr></tbody></table>
+<h3>扫描应用（引擎/Web 视图）（21）</h3>
+<table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_engine</td><td>test_deepseek_key_detected</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_django_secret_key_detected</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_line_text_is_redacted</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_low_entropy_not_flagged</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_password_placeholder_allowed</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_redact</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_repository_scan</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_repository_timeout</td><td>0.003s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_scan_target_forbidden_root</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_scan_target_invalid_url</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_scan_target_local_dir</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_scan_target_missing_dir</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_engine</td><td>test_shannon_entropy</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_async_scan_flow</td><td>0.012s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_concurrent_scan_rejected</td><td>0.007s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_invalid_params_rejected</td><td>0.006s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_non_staff_cannot_scan_custom_target</td><td>0.006s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_scanner_page</td><td>0.021s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_scanner_page_requires_login</td><td>0.003s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_update_finding_status</td><td>0.008s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_views</td><td>test_worker_marks_failed_on_timeout</td><td>0.005s</td><td><span class="ok">通过</span></td></tr></tbody></table>
+<h3>工具模块（调度/文件扫描）（10）</h3>
+<table><thead><tr><th>模块</th><th>用例</th><th>耗时</th><th>结果</th></tr></thead><tbody><tr><td>test_file_scanner</td><td>test_find_file_names</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_file_scanner</td><td>test_max_depth</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_file_scanner</td><td>test_missing_dir</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_file_scanner</td><td>test_no_recursive</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_file_scanner</td><td>test_pattern_and_extension</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_file_scanner</td><td>test_scan_basic</td><td>0.002s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_file_scanner</td><td>test_truncation</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_scheduler</td><td>test_human_readable</td><td>0.586s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_scheduler</td><td>test_invalid_cron</td><td>0.001s</td><td><span class="ok">通过</span></td></tr>
+<tr><td>test_scheduler</td><td>test_valid_cron</td><td>0.001s</td><td><span class="ok">通过</span></td></tr></tbody></table>
+
+<h2>三、环境</h2>
+<table><tbody>
+<tr><td>Python</td><td>3.11.15</td></tr>
+<tr><td>Django</td><td>4.2.30</td></tr>
+<tr><td>pytest 工具链</td><td>pytest 8.3.5 / pytest-django 4.10.0 / pytest-cov 6.0.0</td></tr>
+<tr><td>前端驱动</td><td>Playwright（系统 Chrome 无头）</td></tr>
+<tr><td>测试数据库</td><td>SQLite 文件库</td></tr>
+</tbody></table>
+<h2>四、代码覆盖率（按模块）</h2>
+<table><thead><tr><th>模块</th><th>语句数</th><th>未覆盖</th><th>覆盖率</th></tr></thead><tbody></tbody></table>
+<h2>五、测试发现并修复的问题</h2>
+<ul>
+<li>扫描引擎缩进错误：无匹配时抛 <code>UnboundLocalError</code></li>
+<li>熵值误判：低熵密码漏报，现只对密钥值计算熵</li>
+<li>密钥明文落库：入库前脱敏</li>
+<li>扫描并发竞态：TOCTOU 已用锁修复</li>
+<li>前端 E2E 用例超时：导航等待写法修正</li>
+</ul>
+<h2>六、如何运行</h2>
+<pre>pip install -r requirements-dev.txt
+pip install playwright
+python -m pytest                  # 全量
+python -m pytest testcase/frontend   # 仅前端</pre>
+<p class="note">前端截图证据见 testcase/frontend/screenshots/；JUnit 结果见 test_results.xml。</p></div></body></html>

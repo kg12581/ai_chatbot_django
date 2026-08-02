@@ -105,7 +105,8 @@ RULES: List[Dict] = [
         "id": "mysql-password",
         "name": "数据库密码",
         "severity": "high",
-        "regex": re.compile(r"""(?i)["']?\bPASSWORD\b["']?\s*[:=]\s*["'][^"']{8,}["']"""),
+        "regex": re.compile(r"""(?i)["']?\bPASSWORD\b["']?\s*[:=]\s*(["'][^"']{8,}["'])"""),
+        "secretGroup": 1,
         "entropy": 2.5,
     },
     {
@@ -113,8 +114,9 @@ RULES: List[Dict] = [
         "name": "通用密钥/Token",
         "severity": "medium",
         "regex": re.compile(
-            r"""(?i)(api[_-]?key|secret|token|access[_-]?key|auth[_-]?key)\s*[:=]\s*["'][^"']{8,}["']"""
+            r"""(?i)(?:api[_-]?key|secret|token|access[_-]?key|auth[_-]?key)\s*[:=]\s*(["'][^"']{8,}["'])"""
         ),
+        "secretGroup": 1,
         "entropy": 3.0,
     },
     {
@@ -162,6 +164,8 @@ SKIP_EXTENSIONS = {
 }
 
 MAX_FILE_BYTES = 1024 * 1024  # 单文件最大 1MB
+CLONE_TIMEOUT_SECONDS = 180  # git clone 超时
+CLONE_RETRIES = 2  # clone 失败重试次数
 
 
 class ScanTimeoutError(Exception):
@@ -177,10 +181,8 @@ def iter_source_files(root: str):
             if filename in SKIP_FILES:
                 continue
             ext = os.path.splitext(filename)[1].lower()
+            # 跳过二进制/资源文件与无扩展名文件（避免扫描产物与随机文件）
             if ext in SKIP_EXTENSIONS or ext == "":
-                # 无扩展名的文件也可能含密钥（如 Dockerfile），但跳过常见无扩展名产物
-                if ext == "":
-                    continue
                 continue
             path = os.path.join(dirpath, filename)
             try:
@@ -207,7 +209,7 @@ def scan_text(text: str, filename: str = "") -> List[Dict]:
     for line_no, line in enumerate(text.splitlines(), 1):
         for rule in RULES:
             for match in rule["regex"].finditer(line):
-                secret = match.group(0)
+                secret = match.group(rule.get("secretGroup", 0))
                 if _is_allowed(secret):
                     continue
 
@@ -221,13 +223,15 @@ def scan_text(text: str, filename: str = "") -> List[Dict]:
                     continue
                 seen.add(key)
 
+                # 行内容同样脱敏后再入库，避免密钥明文落库
+                redacted_line = line.replace(secret, _redact(secret))
                 findings.append({
                     "rule_id": rule["id"],
                     "rule_name": rule["name"],
                     "severity": rule["severity"],
                     "file_path": filename,
                     "line_number": line_no,
-                    "line_text": line.strip()[:200],
+                    "line_text": redacted_line.strip()[:200],
                     "secret_preview": _redact(secret),
                     "entropy": round(entropy, 2),
                 })
@@ -316,16 +320,33 @@ def scan_target(
             raise ValueError("Git 仓库 URL 无效（示例：https://github.com/user/repo.git）")
         tmp_dir = tempfile.mkdtemp(prefix="secret-scan-")
         try:
-            try:
-                proc = subprocess.run(
-                    ["git", "clone", "--depth", "1", "--quiet", stripped, tmp_dir],
-                    capture_output=True, timeout=120,
+            # 使用 HTTP/1.1 + 连接超时 + 低速保护，避免网络抖动导致失败；失败自动重试
+            clone_cmd = [
+                "git", "-c", "http.version=HTTP/1.1",
+                "-c", "http.connectTimeout=20",
+                "-c", "http.lowSpeedLimit=1000",
+                "-c", "http.lowSpeedTime=60",
+                "clone", "--depth", "1", "--single-branch", "--quiet", stripped, tmp_dir,
+            ]
+            last_detail = "未知错误"
+            for attempt in range(CLONE_RETRIES + 1):
+                try:
+                    proc = subprocess.run(
+                        clone_cmd, capture_output=True, timeout=CLONE_TIMEOUT_SECONDS,
+                    )
+                except subprocess.TimeoutExpired:
+                    raise ScanTimeoutError(
+                        f"克隆 Git 仓库超过 {CLONE_TIMEOUT_SECONDS} 秒，已中止（网络慢或仓库过大）"
+                    )
+                if proc.returncode == 0:
+                    break
+                last_detail = (proc.stderr or b"").decode("utf-8", errors="ignore").strip() or last_detail
+                if attempt < CLONE_RETRIES:
+                    time.sleep(2 * (attempt + 1))
+            else:
+                raise ValueError(
+                    f"克隆 Git 仓库失败（已重试 {CLONE_RETRIES} 次）: {last_detail[-300:]}"
                 )
-            except subprocess.TimeoutExpired:
-                raise ScanTimeoutError("克隆 Git 仓库超过 120 秒，已中止")
-            if proc.returncode != 0:
-                detail = (proc.stderr or b"").decode("utf-8", errors="ignore").strip()
-                raise ValueError(f"克隆 Git 仓库失败（exit {proc.returncode}）: {detail[-200:]}")
             return scan_repository(tmp_dir, max_seconds=max_seconds, max_files=max_files)
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)

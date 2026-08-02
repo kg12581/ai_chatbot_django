@@ -20,10 +20,13 @@ logger = logging.getLogger(__name__)
 # 保留最近多少次扫描记录，更早的自动清理
 KEEP_RECENT_RUNS = 20
 # 扫描资源上限：防止超大仓库拖垮服务
-SCAN_MAX_SECONDS = 120
-SCAN_MAX_FILES = 20000
-CLONE_TIMEOUT_SECONDS = 120
+SCAN_MAX_SECONDS = 300
+SCAN_MAX_FILES = 50000
 STALE_RUN_MINUTES = 10
+
+# 请求可覆盖的上限范围
+MAX_SECONDS_LIMIT = 600
+MAX_FILES_LIMIT = 200000
 
 # 同一时间只允许一个扫描任务
 _scan_lock = threading.Lock()
@@ -63,6 +66,13 @@ def scanner_run(request):
     if target and not (request.user.is_staff or request.user.is_superuser):
         return JsonResponse({"success": False, "error": "仅管理员可扫描指定代码仓"}, status=403)
 
+    # 支持按请求自定义资源上限（可选）
+    try:
+        max_seconds = min(max(int(data.get("max_seconds") or SCAN_MAX_SECONDS), 10), MAX_SECONDS_LIMIT)
+        max_files = min(max(int(data.get("max_files") or SCAN_MAX_FILES), 100), MAX_FILES_LIMIT)
+    except (TypeError, ValueError):
+        return JsonResponse({"success": False, "error": "max_seconds/max_files 必须是整数"}, status=400)
+
     if target.startswith(("http://", "https://")):
         source_type, display_target = "url", target
     elif target:
@@ -79,19 +89,20 @@ def scanner_run(request):
     ).update(status="failed", error_message="扫描进程中断，已标记为失败")
 
     # 并发保护：同一时间只允许一个扫描
-    if ScanRun.objects.filter(status="running").exists():
-        return JsonResponse({"success": False, "error": "已有扫描正在进行中，请稍后再试"}, status=409)
+    with _scan_lock:
+        if ScanRun.objects.filter(status="running").exists():
+            return JsonResponse({"success": False, "error": "已有扫描正在进行中，请稍后再试"}, status=409)
 
-    run = ScanRun.objects.create(
-        status="running",
-        source_type=source_type,
-        target_path=display_target,
-    )
+        run = ScanRun.objects.create(
+            status="running",
+            source_type=source_type,
+            target_path=display_target,
+        )
 
     # 后台线程执行，避免大仓库阻塞请求
     thread = threading.Thread(
         target=_scan_worker,
-        args=(run.pk, target),
+        args=(run.pk, target, max_seconds, max_files),
         daemon=True,
         name=f"secret-scan-{run.pk}",
     )
@@ -105,7 +116,7 @@ def scanner_run(request):
     })
 
 
-def _scan_worker(run_id: int, target: str):
+def _scan_worker(run_id: int, target: str, max_seconds: int, max_files: int):
     """后台执行扫描并更新 ScanRun（线程内使用独立 DB 连接）。"""
     from django.db import connections
 
@@ -115,8 +126,8 @@ def _scan_worker(run_id: int, target: str):
         result = scan_target(
             target,
             str(settings.BASE_DIR),
-            max_seconds=SCAN_MAX_SECONDS,
-            max_files=SCAN_MAX_FILES,
+            max_seconds=max_seconds,
+            max_files=max_files,
         )
         duration_ms = int((time.monotonic() - start) * 1000)
 

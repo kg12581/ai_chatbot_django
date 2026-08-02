@@ -1,0 +1,70 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-8.3.5, pluggy-1.6.0
+django: version: 4.2.30, settings: core.test_settings (from ini)
+rootdir: /Users/kgt/code/codex/ai_chatbot_django
+configfile: pytest.ini
+plugins: cov-6.0.0, langsmith-0.10.14, django-4.10.0, anyio-4.14.2
+collected 8 items
+
+testcase/frontend/test_e2e.py ........                                   [100%]
+
+- generated xml file: /Users/kgt/code/codex/ai_chatbot_django/testcase/frontend/test_results.xml -
+
+--------- coverage: platform darwin, python 3.11.15-final-0 ----------
+Name                                                                 Stmts   Miss  Cover   Missing
+--------------------------------------------------------------------------------------------------
+api/__init__.py                                                          0      0   100%
+api/admin.py                                                            26      0   100%
+api/apps.py                                                              5      0   100%
+api/crawler.py                                                          47     35    26%   56-92, 97-129, 138-162, 171-173
+api/management/__init__.py                                               0      0   100%
+api/management/commands/__init__.py                                      0      0   100%
+api/management/commands/crawl_douyin.py                                 11     11     0%   3-26
+api/management/commands/crawl_weibo.py                                  11     11     0%   3-26
+api/migrations/0001_initial.py                                           5      0   100%
+api/migrations/0002_schedulerconfig.py                                   4      0   100%
+api/migrations/0003_weibohotsearch.py                                    4      0   100%
+api/migrations/__init__.py                                               0      0   100%
+api/models.py                                                           58      5    91%   30, 34, 64, 68, 98
+api/urls.py                                                              3      0   100%
+api/views.py                                                           171     93    46%   42-58, 63-81, 90, 106-107, 163-171, 185, 201-202, 229-239, 249-254, 261, 270, 277-282, 289, 298, 303-344, 353-363
+api/weibo_crawler.py                                                    57     57     0%   8-187
+common/__init__.py                                                       0      0   100%
+common/admin.py                                                         47      2    96%   17, 32
+common/apps.py                                                           4      0   100%
+common/mcp_models.py                                                    54      3    94%   51, 90, 134
+common/migrations/0001_initial.py                                        6      0   100%
+common/migrations/0002_conversation_user.py                              6      0   100%
+common/migrations/0003_mcpserver_mcptool_skill.py                        6      0   100%
+common/migrations/__init__.py                                            0      0   100%
+common/models.py                                                        25      2    92%   22, 45
+common/skill_views.py                                                  138     88    36%   32-52, 63-89, 97-100, 112-115, 123-139, 145-146, 165-186, 194-197, 209-212, 223-226, 242-249, 254-265
+common/tests.py                                                          1      1     0%   1
+common/views.py                                                        153    102    33%   26, 76, 93-174, 179-182, 187-206, 214-268, 279-285
+scanner/__init__.py                                                      0      0   100%
+scanner/admin.py                                                        15      0   100%
+scanner/apps.py                                                          5      0   100%
+scanner/management/__init__.py                                           0      0   100%
+scanner/management/commands/__init__.py                                  0      0   100%
+scanner/management/commands/scan_secrets.py                             18     18     0%   3-38
+scanner/migrations/0001_initial.py                                       6      0   100%
+scanner/migrations/0002_scanrun_source_type_scanrun_target_path.py       4      0   100%
+scanner/migrations/0003_scanrun_error_message.py                         4      0   100%
+scanner/migrations/__init__.py                                           0      0   100%
+scanner/models.py                                                       40      2    95%   34, 74
+scanner/urls.py                                                          3      0   100%
+scanner/views.py                                                       120     82    32%   59-111, 121-183, 189-192, 213-226
+tools/__init__.py                                                        0      0   100%
+tools/date_utils.py                                                     33     33     0%   5-59
+tools/db_utils.py                                                       39     39     0%   5-89
+tools/file_scanner.py                                                  111    111     0%   17-240
+tools/format_utils.py                                                   45     45     0%   5-94
+tools/http_utils.py                                                     52     52     0%   5-142
+tools/scheduler.py                                                     142     90    37%   46-52, 72, 88-97, 101-105, 124-146, 150-155, 159-164, 168-173, 177-186, 192, 207, 223-239, 249-256, 266, 268, 270, 273-278
+tools/secret_scanner.py                                                135    111    18%   31-44, 49-51, 146, 177-193, 206-238, 251-276, 303-361
+tools/ssh_utils.py                                                      72     72     0%   22-218
+tools/string_utils.py                                                   41     41     0%   5-71
+--------------------------------------------------------------------------------------------------
+TOTAL                                                                 1727   1106    36%
+
+============================== 8 passed in 23.87s ==============================
