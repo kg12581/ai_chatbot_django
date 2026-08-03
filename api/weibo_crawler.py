@@ -6,6 +6,7 @@
 """
 
 import logging
+from urllib.parse import quote
 from typing import List, Dict
 
 import requests
@@ -35,6 +36,11 @@ LABEL_MAP = {
     "荐": "hot",
     "商": "hot",
 }
+
+
+def _weibo_search_url(word: str) -> str:
+    """构造微博话题搜索链接"""
+    return f"https://s.weibo.com/weibo?q={quote('#' + word + '#')}"
 
 
 def crawl_weibo_hot() -> List[Dict]:
@@ -77,11 +83,11 @@ def crawl_weibo_hot() -> List[Dict]:
             label_name = item.get("label_name", "")
             cover = item.get("icon", "") or item.get("pic", "") or ""
 
-            # 话题链接：优先接口给出的 scheme，否则构造微博搜索链接
-            url = item.get("word_scheme", "") or item.get("url", "")
-            if not url:
-                from urllib.parse import quote
-                url = f"https://s.weibo.com/weibo?q={quote('#' + word + '#')}"
+            # 话题链接：优先接口给出的 word_scheme；url 字段常为纯文本（如 #话题#），
+            # 只有以 http 开头的才当作链接，否则构造微博搜索链接兜底
+            url = (item.get("word_scheme") or "").strip()
+            if not url.startswith(("http://", "https://")):
+                url = _weibo_search_url(word)
 
             result.append({
                 # 置顶话题可能没有 rank 字段，先占位，最后统一重排
@@ -132,13 +138,12 @@ def _mock_data() -> List[Dict]:
 
     result = []
     for i, (title, hot, label) in enumerate(mock_items, 1):
-        from urllib.parse import quote
         result.append({
             "rank": i,
             "title": title,
             "hot_value": hot,
             "label": label,
-            "url": f"https://s.weibo.com/weibo?q={quote('#' + title + '#')}",
+            "url": _weibo_search_url(title),
             "cover_url": "",
         })
     return result

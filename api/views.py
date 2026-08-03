@@ -10,7 +10,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
 from api.models import DouyinHotSearch, SchedulerConfig
-from api.crawler import fetch_and_save
+from api.crawler import fetch_and_save, _douyin_search_url
+from api.weibo_crawler import _weibo_search_url
 from tools.scheduler import scheduler_manager, validate_cron
 
 logger = logging.getLogger(__name__)
@@ -111,6 +112,7 @@ def douyin_hot(request):
             "label": item.label,
             "label_text": style["text"],
             "label_class": style["class"],
+            "url": item.url or _douyin_search_url(item.title),
             "cover_url": item.cover_url,
         })
 
@@ -206,7 +208,7 @@ def weibo_hot(request):
             "label": item.label,
             "label_text": style["text"],
             "label_class": style["class"],
-            "url": item.url,
+            "url": item.url or _weibo_search_url(item.title),
             "cover_url": item.cover_url,
         })
 

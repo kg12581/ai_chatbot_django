@@ -3,7 +3,10 @@
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 from django.urls import reverse
+
+from api.models import DouyinHotSearch, WeiboHotSearch
 
 
 @pytest.fixture
@@ -38,6 +41,25 @@ def test_weibo_hot_page(logged_client):
     resp = logged_client.get(reverse("weibo_hot"))
     assert resp.status_code == 200
     assert "微博热搜榜" in resp.content.decode()
+
+
+@pytest.mark.django_db
+def test_douyin_page_links_fallback(logged_client):
+    # 老数据没有 url 时，页面应生成抖音搜索链接兜底
+    DouyinHotSearch.objects.create(rank=1, title="测试话题", hot_value=1, crawl_batch=timezone.now())
+    resp = logged_client.get(reverse("douyin_hot"))
+    body = resp.content.decode()
+    assert "douyin.com/search" in body
+
+
+@pytest.mark.django_db
+def test_douyin_page_links_use_stored_url(logged_client):
+    DouyinHotSearch.objects.create(
+        rank=1, title="话题", hot_value=1,
+        url="https://www.douyin.com/search/指定话题", crawl_batch=timezone.now(),
+    )
+    resp = logged_client.get(reverse("douyin_hot"))
+    assert "指定话题" in resp.content.decode()
 
 
 # ===== 爬取接口 =====

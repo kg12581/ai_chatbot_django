@@ -119,7 +119,7 @@
     <!-- 热搜列表 -->
     <div id="hot-list" class="space-y-2">
         {% for item in items %}
-        <div class="group flex items-center gap-4 p-4 rounded-xl border border-nocturne-border bg-nocturne-surface/40 hover:bg-nocturne-elevated/60 hover:border-nocturne-mint/30 transition-all cursor-pointer animate-slide-in" style="animation-delay: {{ forloop.counter|add:'1' }}00ms">
+        <a href="{{ item.url|default:'#' }}" target="_blank" rel="noopener" class="group flex items-center gap-4 p-4 rounded-xl border border-nocturne-border bg-nocturne-surface/40 hover:bg-nocturne-elevated/60 hover:border-nocturne-mint/30 transition-all cursor-pointer animate-slide-in" style="animation-delay: {{ forloop.counter|add:'1' }}00ms">
 
             <!-- 排名 -->
             <div class="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg
@@ -149,7 +149,7 @@
                 <i data-lucide="flame" class="w-3.5 h-3.5 text-orange-400/70"></i>
                 <span class="font-mono text-sm">{{ item.hot_value|floatformat:0 }}</span>
             </div>
-        </div>
+        </a>
         {% empty %}
         <div class="text-center py-20 text-nocturne-text-muted">
             <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-4 opacity-40"></i>

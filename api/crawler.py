@@ -6,6 +6,7 @@
 """
 
 import logging
+from urllib.parse import quote
 from typing import List, Dict
 
 import requests
@@ -33,6 +34,11 @@ LABEL_MAP = {
     3: "boil",   # 沸
     0: "normal",
 }
+
+
+def _douyin_search_url(word: str) -> str:
+    """构造抖音话题搜索链接（接口未提供直达链接时使用）"""
+    return f"https://www.douyin.com/search/{quote(word)}?type=general"
 
 
 def crawl_douyin_hot() -> List[Dict]:
@@ -81,6 +87,7 @@ def crawl_douyin_hot() -> List[Dict]:
                 "title": item.get("word", ""),
                 "hot_value": item.get("hot_value", 0),
                 "label": LABEL_MAP.get(label_code, "normal"),
+                "url": _douyin_search_url(item.get("word", "")),
                 "cover_url": cover_url,
             })
 
@@ -124,6 +131,7 @@ def _mock_data() -> List[Dict]:
             "title": title,
             "hot_value": hot,
             "label": label,
+            "url": _douyin_search_url(title),
             "cover_url": "",
         })
     return result
@@ -151,6 +159,7 @@ def save_to_db(items: List[Dict]) -> int:
             title=item["title"],
             hot_value=item["hot_value"],
             label=item["label"],
+            url=item.get("url", ""),
             cover_url=item["cover_url"],
             crawl_batch=batch_time,
         )

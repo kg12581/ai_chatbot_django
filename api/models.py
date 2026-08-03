@@ -15,6 +15,7 @@ class DouyinHotSearch(models.Model):
     title = models.CharField(max_length=500, verbose_name="热搜标题")
     hot_value = models.BigIntegerField(default=0, verbose_name="热度值")
     label = models.CharField(max_length=20, default="normal", verbose_name="标签")
+    url = models.URLField(max_length=2000, blank=True, default="", verbose_name="话题链接")
     cover_url = models.URLField(max_length=1000, blank=True, default="", verbose_name="封面图")
     crawl_batch = models.DateTimeField(verbose_name="爬取批次时间")
 

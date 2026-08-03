@@ -211,6 +211,40 @@ class SchedulerManager:
 scheduler_manager = SchedulerManager()
 
 
+def restore_jobs_from_config() -> int:
+    """
+    服务启动时从数据库恢复 enabled=True 的调度任务。
+
+    SchedulerConfig 配置持久化在数据库，但 APScheduler 任务本身只存在内存
+    （MemoryJobStore），服务重启后任务会丢失。此函数在应用启动时重新注册任务。
+
+    适用于单进程部署（开发 runserver）；多 worker / 多机部署请使用外部调度
+    （systemd timer / Celery Beat）触发管理命令，避免任务重复执行。
+
+    Returns:
+        恢复的任务数量
+    """
+    if _skip_init:
+        logger.info("跳过调度任务恢复（reloader/非主进程）")
+        return 0
+
+    from api.models import SchedulerConfig
+
+    restored = 0
+    for config in SchedulerConfig.objects.filter(enabled=True):
+        try:
+            scheduler_manager.add_job(
+                job_id=config.task_id,
+                func=config.func_path,
+                cron_expr=config.cron_expr,
+            )
+            logger.info(f"已恢复定时任务: {config.task_id} ({config.cron_expr})")
+            restored += 1
+        except Exception as e:
+            logger.error(f"恢复定时任务失败 {config.task_id}: {e}")
+    return restored
+
+
 # ===== Cron 表达式验证工具 =====
 
 def validate_cron(expr: str) -> Dict:

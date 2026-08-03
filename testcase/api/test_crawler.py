@@ -37,6 +37,7 @@ class TestDouyinCrawler:
         assert items[0]["rank"] == 1
         assert items[0]["title"] == "话题一"
         assert items[0]["label"] == "hot"
+        assert "douyin.com/search" in items[0]["url"]
         assert items[1]["label"] == "normal"
         assert items[2]["label"] == "new"
 
@@ -47,11 +48,13 @@ class TestDouyinCrawler:
         assert len(items) == 1
         assert items[0]["title"] == "旧格式"
         assert items[0]["label"] == "boil"
+        assert "douyin.com/search" in items[0]["url"]
 
     def test_empty_list_falls_back_to_mock(self):
         with mock.patch.object(crawler.requests, "get", return_value=_mock_get({"word_list": []})):
             items = crawler.crawl_douyin_hot()
         assert len(items) == 20  # 模拟数据兜底
+        assert all("douyin.com/search" in i["url"] for i in items)
 
     def test_request_error_falls_back_to_mock(self):
         with mock.patch.object(
@@ -63,10 +66,11 @@ class TestDouyinCrawler:
 
     @pytest.mark.django_db
     def test_save_to_db(self):
-        items = [{"rank": 1, "title": "话题", "hot_value": 1, "label": "hot", "cover_url": ""}]
+        items = [{"rank": 1, "title": "话题", "hot_value": 1, "label": "hot", "url": "https://www.douyin.com/search/话题", "cover_url": ""}]
         assert crawler.save_to_db(items) == 1
         assert DouyinHotSearch.objects.count() == 1
         assert DouyinHotSearch.objects.first().rank == 1
+        assert "douyin.com" in DouyinHotSearch.objects.first().url
 
 
 # ===== 微博爬虫 =====
@@ -96,6 +100,13 @@ class TestWeiboCrawler:
         with mock.patch.object(weibo_crawler.requests, "get", return_value=_mock_get(payload)):
             items = weibo_crawler.crawl_weibo_hot()
         assert "s.weibo.com" in items[0]["url"]
+
+    def test_non_http_url_falls_back(self):
+        # 微博接口 url 字段可能是 "#话题#" 纯文本，不能当链接用
+        payload = {"data": {"realtime": [{"word": "文本话题", "num": 1, "label_name": "", "url": "#文本话题#"}]}}
+        with mock.patch.object(weibo_crawler.requests, "get", return_value=_mock_get(payload)):
+            items = weibo_crawler.crawl_weibo_hot()
+        assert items[0]["url"].startswith("https://s.weibo.com/weibo?q=")
 
     def test_empty_falls_back_to_mock(self):
         with mock.patch.object(weibo_crawler.requests, "get", return_value=_mock_get({"data": {"realtime": []}})):
