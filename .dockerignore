@@ -1,0 +1,16 @@
+.git
+.github
+__pycache__
+*.pyc
+.env
+.pytest_cache
+.coverage
+htmlcov
+media
+data
+chroma_langchain_db
+staticfiles
+analytics_export.csv
+.idea
+.vscode
+testcase/frontend/screenshots

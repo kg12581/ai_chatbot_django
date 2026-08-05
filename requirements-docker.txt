@@ -1,0 +1,21 @@
+# Docker 镜像运行时依赖（精简自 requirements.txt）
+# 说明：
+#   - 去掉 RHEL/Fedora 系统包（rpm/selinux/dbus/systemd/PyGObject 等，容器内不需要）
+#   - 补上代码实际 import 但原清单缺失的 APScheduler
+Django==4.2.30
+PyMySQL==1.2.0
+python-dotenv==1.2.1
+requests==2.32.5
+APScheduler==3.11.3
+chromadb==1.5.9
+langchain-chroma==0.2.6
+langchain-core==0.3.86
+langchain-huggingface==0.3.1
+langchain-openai==0.3.35
+langgraph==0.6.11
+langgraph-checkpoint==2.1.2
+langgraph-prebuilt==0.6.5
+langgraph-sdk==0.2.9
+sentence-transformers==5.1.2
+torch==2.8.0
+typing-extensions==4.16.0

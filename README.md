@@ -154,6 +154,36 @@ python manage.py runserver 0.0.0.0:8000
 
 ---
 
+## 🐳 Docker 运行（可选）
+
+项目提供 `Dockerfile` 与 `docker-compose.yml`，直接复用 `.env` 中配置的
+MySQL 连接（默认 `192.168.3.100`），一条命令即可跑起来：
+
+```bash
+# 构建并启动（首次构建需下载 torch 等依赖，耗时较长、镜像较大）
+docker compose up -d --build
+
+# 查看状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f web
+
+# 停止
+docker compose down
+```
+
+说明：
+
+- 访问 `http://localhost:8000`；数据库使用 `.env` 里的连接信息，无需自带 MySQL
+- 代码目录通过 volume 挂载，改代码即时生效
+- `.env` 中的 `DEEPSEEK_API_KEY`、`DJANGO_SECRET_KEY`、`DB_*` 会被 compose 读取；
+  容器网络可正常访问局域网内的 MySQL（192.168.3.100）
+- 首次使用 AI 对话会下载 Embedding 模型（需容器能访问外网）
+- 生产部署建议把 `CMD` 换成 gunicorn + 外部 MySQL，并设置 `DEBUG=False`
+
+---
+
 ## 🔌 API 接口
 
 ### 热搜与调度（需登录）
