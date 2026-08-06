@@ -179,6 +179,8 @@ docker compose down
 - 代码目录通过 volume 挂载，改代码即时生效
 - `.env` 中的 `DEEPSEEK_API_KEY`、`DJANGO_SECRET_KEY`、`DB_*` 会被 compose 读取；
   容器网络可正常访问局域网内的 MySQL（192.168.3.100）
+- `.env` 需放在 `docker-compose.yml` 同目录（部署机/Jenkins 提供），
+  `env_file` 会把全部变量注入容器；`.env` 不进镜像、不进 Git
 - 首次使用 AI 对话会下载 Embedding 模型（需容器能访问外网）
 - 生产部署建议把 `CMD` 换成 gunicorn + 外部 MySQL，并设置 `DEBUG=False`
 

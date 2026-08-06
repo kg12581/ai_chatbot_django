@@ -5,6 +5,9 @@ services:
     container_name: nocturne-web
     restart: unless-stopped
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    # .env 全部变量注入容器（.env 放在 compose 同目录，由部署机/Jenkins 提供）
+    env_file:
+      - .env
     environment:
       # 直接使用 .env 中配置的 MySQL 连接（默认 192.168.3.100）
       DB_HOST: ${DB_HOST:-192.168.3.100}
