@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404, render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from scanner.models import ScanRun, SecretFinding
+from common.scanner_models import ScanRun, SecretFinding
 from tools.secret_scanner import ScanTimeoutError, scan_target
 
 logger = logging.getLogger(__name__)

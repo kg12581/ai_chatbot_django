@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Conversation, Message, McpServer, McpTool, Skill
+from .models import Conversation, Message, McpServer, McpTool, Skill, ScanRun, SecretFinding, AnalyticsEvent
 
 
 @admin.register(Conversation)

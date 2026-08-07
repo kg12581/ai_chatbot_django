@@ -47,3 +47,9 @@ class Message(models.Model):
 
 # MCP 与 Skill 模型
 from .mcp_models import McpServer, McpTool, Skill  # noqa: E402,F401
+
+# 硬编码扫描模型
+from .scanner_models import ScanRun, SecretFinding  # noqa: E402,F401
+
+# 埋点统计模型
+from .analytics_models import AnalyticsEvent  # noqa: E402,F401

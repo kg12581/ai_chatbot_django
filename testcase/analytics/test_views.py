@@ -5,7 +5,7 @@ import json
 import pytest
 from django.urls import reverse
 
-from analytics.models import AnalyticsEvent
+from common.analytics_models import AnalyticsEvent
 
 
 @pytest.mark.django_db

@@ -7,7 +7,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from analytics.models import AnalyticsEvent
+from common.analytics_models import AnalyticsEvent
 
 
 class Command(BaseCommand):

@@ -5,8 +5,8 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
-from scanner import views as scanner_views
-from scanner.models import ScanRun, SecretFinding
+from common import scanner_views
+from common.scanner_models import ScanRun, SecretFinding
 from tools.secret_scanner import ScanTimeoutError
 
 
@@ -65,7 +65,7 @@ def test_async_scan_flow(client, users):
             "secret_preview": "sk-****", "entropy": 4.0,
         }],
     }
-    with mock.patch("scanner.views.scan_target", return_value=canned), \
+    with mock.patch("common.scanner_views.scan_target", return_value=canned), \
          mock.patch("threading.Thread.start", lambda self: self.run()), \
          mock.patch("django.db.connections.close_all"):
         resp = client.post(reverse("scanner_run"), data="{}", content_type="application/json")
@@ -89,7 +89,7 @@ def test_worker_marks_failed_on_timeout(users):
     admin, _ = users
     run = ScanRun.objects.create(status="running")
     with mock.patch(
-        "scanner.views.scan_target",
+        "common.scanner_views.scan_target",
         side_effect=ScanTimeoutError("扫描超时（300 秒），已中止"),
     ), mock.patch("django.db.connections.close_all"):
         scanner_views._scan_worker(run.pk, "", 300, 50000)

@@ -1,6 +1,6 @@
 from django.urls import path
 
-from scanner.views import scanner_home, scanner_run, scanner_status, scanner_update_status
+from common.scanner_views import scanner_home, scanner_run, scanner_status, scanner_update_status
 
 urlpatterns = [
     path("", scanner_home, name="scanner_home"),

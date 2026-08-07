@@ -57,10 +57,10 @@ urlpatterns = [
     path("api/", include("api.urls")),
 
     # 硬编码密钥扫描
-    path("scanner/", include("scanner.urls")),
+    path("scanner/", include("common.scanner_urls")),
 
     # 埋点统计
-    path("", include("analytics.urls")),
+    path("", include("common.analytics_urls")),
 
     # Skill 与 MCP 配置
     path("skills/", skills_dashboard, name="skills_dashboard"),

@@ -74,12 +74,10 @@
 ```
 ai_chatbot_django/
 ├── core/                       # Django 项目配置（settings/urls，配置全部走 .env）
-├── common/                     # AI 对话应用（会话/消息/上传/MCP/Skill）
+├── common/                     # 核心功能：对话/上传/MCP/Skill + 硬编码扫描 + 埋点统计（按模块拆分）
 ├── api/                        # 热搜 + 调度应用（抖音/微博爬虫、定时任务）
-├── scanner/                    # 硬编码扫描应用（自研引擎 + Web 页面）
-├── analytics/                  # 埋点统计应用（事件模型/上报/统计页）
 ├── tools/                      # 工具集（ssh/调度/日期/字符串/http/db/格式化/密钥扫描/文件扫描）
-├── templates/                  # HTML 模板（含 scanner、analytics 页面）
+├── templates/                  # HTML 模板（chat、scanner、analytics 页面）
 ├── static/                     # 静态资源（css / js：chat.js、tracking.js）
 ├── testcase/                   # 测试套件 + 测试报告 + 报告生成器
 ├── docs/                       # 功能实现说明文档
